@@ -1,0 +1,238 @@
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
+import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, Settings2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+// Default export so the preview renders
+export default function TradingSimulatorDemo() {
+  // ----- Simulation State -----
+  const [running, setRunning] = useState(false);
+  const [volatilityBps, setVolatilityBps] = useState(80); // basis points of daily-ish vol per tick (0-500)
+  const [speedMs, setSpeedMs] = useState(600); // update interval
+
+  const initialPrice = 100;
+  const startingCash = 10000;
+  const [data, setData] = useState(() => [{ t: 0, price: initialPrice }]);
+
+  // Assume fully invested at t0
+  const units = useMemo(() => startingCash / initialPrice, []);
+
+  const latestPrice = data[data.length - 1].price;
+  const equity = units * latestPrice;
+  const pnl = equity - startingCash;
+  const pct = (pnl / startingCash) * 100;
+
+  const tickRef = useRef(null as unknown as number);
+
+  // ----- Simulation Tick -----
+  useEffect(() => {
+    if (!running) return;
+
+    const id = window.setInterval(() => {
+      setData((prev) => {
+        const last = prev[prev.length - 1];
+        // Random walk using normal-ish noise via CLT (sum uniforms)
+        const noise = boxMuller() * (volatilityBps / 10000); // convert bps to decimal
+        const newPrice = Math.max(1, round2(last.price * (1 + noise)));
+        const next = { t: last.t + 1, price: newPrice };
+        // keep only latest ~200 points for performance
+        const limited = prev.length > 200 ? prev.slice(prev.length - 200) : prev;
+        return [...limited, next];
+      });
+    }, speedMs);
+
+    return () => window.clearInterval(id);
+  }, [running, speedMs, volatilityBps]);
+
+  // ----- Helpers -----
+  function resetAll() {
+    setRunning(false);
+    setData([{ t: 0, price: initialPrice }]);
+  }
+
+  function boxMuller() {
+    // Standard normal using Box–Muller transform
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  }
+
+  function round2(n: number) {
+    return Math.round(n * 100) / 100;
+  }
+
+  // ----- UI -----
+  const isUp = pnl >= 0;
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 relative">
+      {/* Watermark */}
+      <div className="pointer-events-none select-none absolute inset-0 flex items-center justify-center opacity-10">
+        <div className="text-5xl md:text-8xl font-black tracking-widest text-slate-200 text-center">
+          SIMULATION • NOT REAL TRADING
+        </div>
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-slate-950/70 border-b border-slate-800">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-400 shadow-lg" />
+            <div>
+              <h1 className="text-xl font-bold leading-tight">PaperTrade Live</h1>
+              <p className="text-xs text-slate-400 -mt-1">Educational demo • Random walk price feed</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setRunning((r) => !r)}
+              className={`px-4 py-2 rounded-2xl shadow-md border border-slate-700 hover:border-slate-600 transition flex items-center gap-2 ${running ? "bg-slate-800" : "bg-blue-600"}`}
+            >
+              {running ? <Pause className="h-4 w-4"/> : <Play className="h-4 w-4"/>}
+              <span className="text-sm font-semibold">{running ? "Pause" : "Start"}</span>
+            </button>
+            <button onClick={resetAll} className="px-4 py-2 rounded-2xl bg-slate-800 border border-slate-700 hover:bg-slate-700 transition flex items-center gap-2">
+              <RotateCcw className="h-4 w-4"/>
+              <span className="text-sm font-semibold">Reset</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: Chart */}
+        <section className="lg:col-span-2">
+          <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
+            <div className="p-4 flex flex-wrap items-center gap-4">
+              <div className="text-sm text-slate-400">Symbol</div>
+              <div className="text-lg font-semibold">SIM-COIN</div>
+              <div className="ml-auto flex items-center gap-3">
+                <span className="text-xs text-slate-400">Speed</span>
+                <select
+                  className="bg-slate-800 border border-slate-700 rounded-xl px-2 py-1 text-sm"
+                  value={speedMs}
+                  onChange={(e) => setSpeedMs(Number(e.target.value))}
+                >
+                  <option value={1000}>1s</option>
+                  <option value={600}>0.6s</option>
+                  <option value={300}>0.3s</option>
+                  <option value={120}>0.12s</option>
+                </select>
+                <span className="text-xs text-slate-400">Volatility</span>
+                <input
+                  type="range"
+                  min={10}
+                  max={500}
+                  value={volatilityBps}
+                  onChange={(e) => setVolatilityBps(Number(e.target.value))}
+                  className="accent-blue-500"
+                />
+                <span className="text-xs tabular-nums">{volatilityBps} bps</span>
+              </div>
+            </div>
+
+            <div className="h-[360px] bg-slate-950/40">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 10, right: 18, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+                  <XAxis dataKey="t" tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "#334155" }} />
+                  <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={{ fill: "#94a3b8", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "#334155" }} width={60} />
+                  <Tooltip
+                    contentStyle={{ background: "#0f172a", border: "1px solid #1f2937", borderRadius: "12px", color: "#e2e8f0" }}
+                    labelStyle={{ color: "#94a3b8" }}
+                  />
+                  <ReferenceLine y={initialPrice} stroke="#334155" strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="price" dot={false} stroke={isUp ? "#22c55e" : "#ef4444"} strokeWidth={2.5} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+
+        {/* Right: Stats */}
+        <section className="space-y-4">
+          <motion.div
+            layout
+            className="rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-slate-400">Starting Balance</div>
+                <div className="text-xl font-bold tabular-nums">${startingCash.toLocaleString()}</div>
+              </div>
+              <div className="text-slate-400"><Settings2 className="h-5 w-5"/></div>
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-xl bg-slate-950/40 p-3 border border-slate-800">
+                <div className="text-xs text-slate-400">Units</div>
+                <div className="text-lg font-semibold tabular-nums">{units.toFixed(2)}</div>
+              </div>
+              <div className="rounded-xl bg-slate-950/40 p-3 border border-slate-800">
+                <div className="text-xs text-slate-400">Price</div>
+                <div className="text-lg font-semibold tabular-nums">${latestPrice.toFixed(2)}</div>
+              </div>
+              <div className="rounded-xl bg-slate-950/40 p-3 border border-slate-800">
+                <div className="text-xs text-slate-400">Equity</div>
+                <div className="text-lg font-semibold tabular-nums">${equity.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={isUp ? "up" : "down"}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: "spring", stiffness: 260, damping: 22 }}
+                className={`mt-4 rounded-xl p-4 border text-center ${isUp ? "bg-emerald-900/20 border-emerald-700/40" : "bg-rose-900/20 border-rose-700/40"}`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  {isUp ? <TrendingUp className="h-5 w-5"/> : <TrendingDown className="h-5 w-5"/>}
+                  <div className="text-sm uppercase tracking-wide text-slate-300">Unrealized P/L</div>
+                </div>
+                <div className={`mt-1 text-2xl font-extrabold tabular-nums ${isUp ? "text-emerald-400" : "text-rose-400"}`}>
+                  {isUp ? "+" : ""}${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  <span className="text-sm ml-2 text-slate-400">({pct >= 0 ? "+" : ""}{pct.toFixed(2)}%)</span>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <p className="mt-4 text-xs text-slate-400 leading-relaxed">
+              This is a <span className="font-semibold text-slate-200">paper-trading simulator</span> with random prices. It’s for learning and fun only. No deposits, no real trades, and no financial advice.
+            </p>
+          </motion.div>
+
+          {/* Mini activity feed */}
+          <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-xl">
+            <div className="text-sm text-slate-400">Activity</div>
+            <ul className="mt-3 space-y-2 max-h-56 overflow-auto pr-1">
+              {data.slice(-12).map((d) => (
+                <li key={d.t} className="flex items-center justify-between bg-slate-950/40 border border-slate-800 rounded-xl px-3 py-2">
+                  <div className="text-xs text-slate-400">Tick {d.t}</div>
+                  <div className="text-sm font-semibold tabular-nums">${d.price.toFixed(2)}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Disclaimer card */}
+          <div className="rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-xl">
+            <div className="text-sm font-semibold text-slate-200">Clear Disclaimer</div>
+            <p className="mt-2 text-xs text-slate-400">
+              This page is a visual simulation intended for education and entertainment. It does <span className="font-semibold">not</span> represent real trading or profits. Do not use it to solicit money or mislead anyone.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="max-w-6xl mx-auto px-4 pb-10 text-center text-xs text-slate-500">
+        © {new Date().getFullYear()} PaperTrade Live — Demo only.
+      </footer>
+    </div>
+  );
+}

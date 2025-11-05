@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Online Devices — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.card{padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<header><h1>Online Devices — Demo</h1><div class="small">Combined view of all endpoints (phones, cars, IoT) in the demo dataset.</div></header>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="small" id="counts">Devices: 0</div>
+    <div><a class="btn" href="dashboard.html">← Dashboard</a></div>
+  </div>
+
+  <div id="grid" class="grid" style="margin-top:12px"></div>
+</div>
+
+<script>
+function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
+const DATA = loadDataset();
+const grid = document.getElementById('grid');
+if(!DATA){ grid.innerHTML = '<div class="card small">No dataset found. Generate one on Dashboard.</div>'; document.getElementById('counts').textContent='Devices: 0'; }
+else{
+  const items = [];
+  (DATA.phones||[]).slice(0,400).forEach(p=> items.push({type:'Phone',id:p.id,name:p.name,summary:p.model + ' · ' + p.os,refId:p.id}));
+  (DATA.cars||[]).slice(0,400).forEach(c=> items.push({type:'Car',id:c.id,name:c.name,summary:c.model + ' · ' + c.plate,refId:c.id}));
+  items.push({type:'CCTV',id:'cam-1',name:'CCTV-Front',summary:'RTSP',refId:null});
+  document.getElementById('counts').textContent = 'Devices: ' + items.length;
+  items.forEach(it=>{ const el=document.createElement('article'); el.className='card'; el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${it.name}</strong><div class="small">${it.type} · ${it.summary}</div></div><div><button class="btn" data-id="${it.refId}" data-type="${it.type}">Open</button></div></div>`; grid.appendChild(el); });
+  grid.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', e=>{ const type = b.dataset.type, id = b.dataset.id; if(type === 'Phone'){ sessionStorage.setItem('demo_focus', id); location.href='phones.html'; } else if(type === 'Car'){ sessionStorage.setItem('demo_focus', id); location.href='cars.html'; } else alert('Opening ' + type + ' (simulated)'); }));
+}
+</script>
+</body>
+</html>

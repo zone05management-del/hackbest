@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>System Override — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--danger:#ff3b3b;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
+.service{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.warn{background:var(--danger);color:#fff;padding:6px;border-radius:6px;border:none}
+.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><h1>System Override — Demo Panel</h1><div class="small">UI-only controls for toggling simulated services.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Services</strong></div><div><a class="btn" href="dashboard.html">← Dashboard</a></div></div>
+    <div id="services" style="margin-top:12px"></div>
+    <div style="margin-top:12px"><button class="warn" id="armBtn">ARM OVERRIDE (Demo)</button></div>
+    <div style="margin-top:10px" id="note" class="small">No real processes are affected. This is a visual demo.</div>
+  </section>
+</div>
+
+<script>
+const servicesList = ['cron','sshd','nginx','db-service','mesh-relay','camera-daemon','payment-proxy'];
+const servicesEl = document.getElementById('services');
+servicesList.forEach(s=>{ const el=document.createElement('div'); el.className='service'; el.innerHTML = `<div><strong>${s}</strong><div class="small">Simulated unit</div></div><div><button class="btn" data-s="${s}">Toggle</button></div>`; servicesEl.appendChild(el); });
+servicesEl.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{ const s=b.dataset.s; b.textContent = 'Toggling…'; setTimeout(()=>{ b.textContent = 'Toggle'; alert(`Service ${s} toggled in demo UI only.`); }, 700); }));
+document.getElementById('armBtn').addEventListener('click', ()=>{ document.getElementById('note').textContent = 'Override armed (simulated) — local UI only.'; });
+</script>
+</body>
+</html>

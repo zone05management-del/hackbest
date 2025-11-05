@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Street & Networks — Demo Control</title>
+<style>
+:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.control{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--txt);cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.toggle.on{background:var(--accent);color:#001}
+.map{height:280px;background:#03110a;border-radius:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<header><h1>Street & Networks Control — Demo</h1><div class="small">CCTV, lights, mesh toggles — simulation only.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Controls</strong></div><div><a class="control" href="dashboard.html">← Dashboard</a></div></div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="control toggle" data-id="cctv-1">CCTV - Market</button>
+      <button class="control toggle" data-id="lights-1">Lights - Main St</button>
+      <button class="control toggle" data-id="mesh-1">Mesh Relay - Block A</button>
+      <button class="control" id="runAll">Run All (sim)</button>
+    </div>
+
+    <div class="map" id="map">[Simulated city map — UI only]</div>
+
+    <div style="margin-top:8px" class="small">Actions are local UI-only. No connection to city infrastructure.</div>
+  </section>
+</div>
+
+<script>
+document.querySelectorAll('.toggle').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    b.classList.toggle('on');
+    const state = b.classList.contains('on') ? 'ENABLED' : 'DISABLED';
+    b.textContent = b.textContent.split(' ')[0] + ' — ' + state;
+  });
+});
+document.getElementById('runAll').addEventListener('click', ()=>{
+  document.querySelectorAll('.toggle').forEach(b=>{ b.classList.add('on'); b.textContent = b.textContent.split(' ')[0] + ' — ENABLED'; });
+  alert('All systems toggled (simulated).');
+});
+</script>
+</body>
+</html>

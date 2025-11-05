@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Network — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.card{padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+.modal.show{display:flex}
+</style>
+</head>
+<body>
+<header><h1>Network — Discovered Devices (Demo)</h1><div class="small">Simulated network discovery results from the demo scanner.</div></header>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="small" id="count">Devices: 0</div>
+    <div><a class="btn" href="scanner.html">← Scanner</a> <a class="btn" href="dashboard.html">← Dashboard</a></div>
+  </div>
+
+  <div id="devicesGrid" class="grid" style="margin-top:12px"></div>
+</div>
+
+<div id="modal" class="modal" aria-hidden="true"></div>
+
+<script>
+function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
+const DATA = loadDataset();
+const built = [
+  {id:'r1',name:'Gateway-01',type:'Router',ip:'192.168.1.1',mac:'AA:BB:CC:11:22:33'},
+  {id:'cam-01',name:'CCTV-Front',type:'CCTV',ip:'192.168.1.45',mac:'AA:BB:CC:99:88:77'},
+  {id:'iot-01',name:'Thermostat',type:'IoT',ip:'192.168.1.60',mac:'AA:BB:CC:22:33:44'}
+];
+const devices = [];
+if(DATA){ (DATA.phones||[]).slice(0,40).forEach((p,i)=> devices.push({id:p.id,name:p.name,type:'Phone',ip:`10.0.2.${20+i}`,mac:`DE:AD:BE:${('0'+i).slice(-2)}:00:01`,ref:p})); (DATA.cars||[]).slice(0,30).forEach((c,i)=> devices.push({id:c.id,name:c.name,type:'Car',ip:`10.0.3.${50+i}`,mac:`CA:FE:BA:${('0'+i).slice(-2)}:00:02`,ref:c})); devices.unshift(...built); } else { devices.push(...built); }
+const grid = document.getElementById('devicesGrid');
+function render(){ grid.innerHTML=''; document.getElementById('count').textContent = 'Devices: ' + devices.length; devices.forEach(d=>{ const el=document.createElement('article'); el.className='card'; el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${d.name}</strong><div class="small">${d.type} · ${d.ip}</div></div><div><button class="btn" data-id="${d.id}">Open</button></div></div>`; grid.appendChild(el); }); grid.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>openDevice(b.dataset.id))); }
+render();
+function openDevice(id){ const d = devices.find(x=>x.id===id); if(!d) return; const modal = document.getElementById('modal'); modal.innerHTML=''; const wrap=document.createElement('div'); wrap.style.width='720px'; wrap.style.maxWidth='92vw'; wrap.style.background='linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))'; wrap.style.padding='12px'; wrap.style.borderRadius='12px'; wrap.style.border='1px solid rgba(255,255,255,.04)'; wrap.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${d.name}</strong><div class="small">${d.type}</div></div><div class="small">${d.ip}</div></header><div style="margin-top:8px"><p><b>MAC:</b> ${d.mac}</p><p class="small">Device detail (simulated). If this device maps to a Phone or Car in your demo dataset, a quick link is provided.</p><div style="margin-top:8px">${d.ref ? `<button id="openRef" class="btn">Open related device</button>` : ''}<a style="margin-left:8px" href="network-control.html" class="small" style="color:var(--neon);text-decoration:none">→ Network Control</a></div></div><footer style="text-align:center;margin-top:12px"><button id="closeBtn" class="btn">Close</button></footer>`; modal.appendChild(wrap); modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); wrap.querySelector('#closeBtn').addEventListener('click', closeModal); if(d.ref){ wrap.querySelector('#openRef').addEventListener('click', ()=>{ if(d.type === 'Phone'){ sessionStorage.setItem('demo_focus', d.ref.id); location.href='phones.html'; } else if(d.type === 'Car'){ sessionStorage.setItem('demo_focus', d.ref.id); location.href='cars.html'; } else closeModal(); }); } }
+function closeModal(){ const m=document.getElementById('modal'); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); setTimeout(()=>m.innerHTML='',250); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>

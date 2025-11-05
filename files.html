@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>File Access — Demo</title>
+<style>
+:root{--bg:#050807;--accent:#18ff62;--txt:#c9ffe1;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.04)}
+.list{margin-top:10px}
+.file{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center}
+.btn{background:var(--accent);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+.modal.show{display:flex}
+</style>
+</head>
+<body>
+<header><h1>File Access — Demo File Browser</h1><div class="small">Simulated explorer for demo volumes and files.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Volumes</strong></div>
+      <div><a href="dashboard.html" class="small" style="color:var(--txt);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:6px;border-radius:8px">← Dashboard</a></div>
+    </div>
+    <div id="volumes" class="list"></div>
+  </section>
+</div>
+
+<div id="modal" class="modal" aria-hidden="true"></div>
+
+<script>
+function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
+const DATA = loadDataset();
+const volumes = [];
+if(DATA){
+  volumes.push({id:'vol-phones',label:'Phones Backup',files:[{name:'phones_dump_1.json',size:'4.2MB'},{name:'contacts.vcf',size:'128KB'}]});
+  volumes.push({id:'vol-cars',label:'Cars Telemetry',files:[{name:'cars_log.csv',size:'1.5MB'}]});
+  volumes.push({id:'vol-banks',label:'Bank Archives',files:[{name:'ledger-demo.zip',size:'9.4MB'}]});
+} else {
+  volumes.push({id:'vol-demo',label:'Demo Volume',files:[{name:'readme.txt',size:'2KB'},{name:'sample.jpg',size:'1.2MB'}]});
+}
+const container = document.getElementById('volumes');
+function render(){ container.innerHTML=''; volumes.forEach(v=>{ const volEl=document.createElement('div'); volEl.className='file'; volEl.innerHTML = `<div><strong>${v.label}</strong><div class="small">${v.files.length} files</div></div><div><button class="btn" data-id="${v.id}">Browse</button></div>`; container.appendChild(volEl); }); container.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>openVolume(b.dataset.id))); }
+render();
+function openVolume(id){ const v = volumes.find(x=>x.id===id); if(!v) return; const modal = document.getElementById('modal'); modal.innerHTML=''; const box=document.createElement('div'); box.style.width='720px'; box.style.maxWidth='92vw'; box.style.background='linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))'; box.style.padding='12px'; box.style.borderRadius='12px'; box.style.border='1px solid rgba(255,255,255,.04)'; box.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${v.label}</strong><div class="small">${v.files.length} files</div></div><div><button id="close" class="btn">Close</button></div></header><div style="margin-top:8px" id="filesList"></div>`; modal.appendChild(box); modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); const filesList = box.querySelector('#filesList'); v.files.forEach(f=>{ const el=document.createElement('div'); el.className='file'; el.innerHTML = `<div>${f.name}<div class="small">${f.size}</div></div><div><button class="btn" data-file="${f.name}">Preview</button></div>`; filesList.appendChild(el); }); filesList.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>previewFile(b.dataset.file))); box.querySelector('#close').addEventListener('click', closeModal); }
+function previewFile(fname){ const modal = document.getElementById('modal'); const preview=document.createElement('div'); preview.style.marginTop='8px'; preview.style.padding='8px'; preview.style.border='1px dashed rgba(255,255,255,.03)'; preview.style.background='rgba(0,0,0,.2)'; preview.innerHTML = `<div><strong>Preview: ${fname}</strong><div class="small">This is a simulated preview of ${fname}. No file was read from disk (UI-only).</div></div>`; modal.querySelector('#filesList').insertBefore(preview, modal.querySelector('#filesList').firstChild); }
+function closeModal(){ const m=document.getElementById('modal'); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); setTimeout(()=>m.innerHTML='',250); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>

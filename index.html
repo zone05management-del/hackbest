@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ACCESS NODE // Secure Gateway</title>
+  <meta name="theme-color" content="#0aff6c" />
+  <style>
+    :root{
+      --bg:#050807;--grid:#0a130f;--txt:#c9ffe1;--accent:#18ff62;--accent2:#49ffd7;--err:#ff3f58;--warn:#ffe15c;
+    }
+    html,body{height:100%}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.07), transparent),radial-gradient(1000px 700px at 85% 90%, rgba(73,255,215,.06), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;overflow:hidden}
+
+    /* Matrix canvas */
+    #mx{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg, rgba(24,255,98,.05), transparent)}
+
+    /* Subtle grid */
+    .grid::before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);background-size:40px 40px;mask:linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,0,0,0));pointer-events:none}
+
+    .wrap{position:relative;z-index:1;display:grid;place-items:center;height:100%;}
+
+    .panel{width:min(520px, 92vw);padding:26px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));box-shadow:0 18px 60px rgba(0,0,0,.45);backdrop-filter: blur(4px)}
+
+    .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .led{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px var(--accent)}
+    .badge{padding:2px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);color:var(--accent)}
+
+    .title{margin:0;font-size:18px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+
+    form{display:grid;gap:12px;margin-top:14px}
+    label{display:grid;gap:6px;font-size:12px;color:#9fe7bd}
+    input{padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.35);color:var(--txt);outline:none;box-shadow:inset 0 0 0 1px rgba(24,255,98,.15)}
+
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .btn{cursor:pointer;border:none;padding:12px 16px;border-radius:12px;color:#06140a;background:var(--accent);font-weight:800;letter-spacing:.06em;box-shadow:0 10px 22px rgba(24,255,98,.25)}
+    .ghost{background:transparent;color:var(--txt);border:1px solid rgba(24,255,98,.35)}
+
+    .status{min-height:22px;font-size:12px;color:#a9eec6}
+    .status.err{color:var(--err)}
+    .status.ok{color:var(--accent)}
+
+    .progress{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent), var(--accent2));box-shadow:0 0 18px rgba(24,255,98,.65)}
+
+    .foot{display:flex;gap:8px;justify-content:space-between;margin-top:14px;color:#90dcb1;font-size:12px;opacity:.9}
+
+    /* Glitch heading */
+    .glitch{position:relative;display:inline-block;filter:drop-shadow(0 0 6px rgba(24,255,98,.45))}
+    .glitch::before,.glitch::after{content:attr(data-text);position:absolute;left:0;top:0;clip-path:inset(0 0 0 0);}
+    .glitch::before{transform:translate(1px,-1px);color:#49ffd7;mix-blend-mode:screen;animation:shift 2.2s infinite ease-in-out}
+    .glitch::after{transform:translate(-1px,1px);color:#18ff62;mix-blend-mode:screen;animation:shift 1.7s infinite reverse ease-in-out}
+    @keyframes shift{0%{clip-path:inset(0 0 85% 0)}20%{clip-path:inset(15% 0 60% 0)}40%{clip-path:inset(40% 0 30% 0)}60%{clip-path:inset(70% 0 0 0)}80%{clip-path:inset(0 0 50% 0)}100%{clip-path:inset(0 0 0 0)}}
+
+    /* Error shake */
+    .shake{animation:shake .4s ease-in-out}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+  </style>
+</head>
+<body class="grid">
+  <canvas id="mx"></canvas>
+  <div class="wrap">
+    <section class="panel" id="panel">
+      <div class="hdr">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="led" aria-hidden="true"></div>
+          <h1 class="title glitch" data-text="ACCESS NODE">ACCESS NODE</h1>
+        </div>
+        <span class="badge">v5.1</span>
+      </div>
+
+      <form id="login" autocomplete="off">
+        <label>
+          <span>Operator ID</span>
+          <input type="text" id="user" inputmode="text" maxlength="24" placeholder="e.g. RFOX_01" required>
+        </label>
+        <label>
+          <span>Passphrase</span>
+          <input type="password" id="pass" maxlength="64" placeholder="••••••••" required>
+        </label>
+        <div class="row">
+          <small id="status" class="status">Awaiting credentials…</small>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="btn ghost" id="demoBtn">Generate</button>
+            <button type="submit" class="btn" id="go">Authorize</button>
+          </div>
+        </div>
+        <div class="progress" aria-label="authorization progress"><div id="bar" class="bar"></div></div>
+      </form>
+
+      <div class="foot">
+        <span>Channel: AES-256 / Noise IX</span>
+        <span>Latency: <b id="lat">0</b>ms</span>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // ===== Matrix Rain (background eye-candy) =====
+    const cvs = document.getElementById('mx');
+    const ctx = cvs.getContext('2d');
+    let W,H,cols,drops,lastTs;
+    const glyphs = 'アカサタナハマヤラワ0123456789$#=+<>*';
+    function size(){W=cvs.width=innerWidth;H=cvs.height=innerHeight;cols=Math.ceil(W/14);drops=Array(cols).fill(0)}
+    addEventListener('resize', size); size();
+    function loop(ts){
+      if(!lastTs) lastTs=ts; const dt=ts-lastTs; lastTs=ts;
+      ctx.fillStyle='rgba(5,8,7,0.2)'; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='#18ff62'; ctx.font='14px monospace';
+      for(let i=0;i<cols;i++){
+        const ch=glyphs[Math.random()*glyphs.length|0];
+        ctx.fillText(ch, i*14, drops[i]*14);
+        if(drops[i]*14>H && Math.random()>0.975) drops[i]=0; else drops[i]++;
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // ===== Login logic (password: "rodgerfox") =====
+    const form = document.getElementById('login');
+    const user = document.getElementById('user');
+    const pass = document.getElementById('pass');
+    const statusEl = document.getElementById('status');
+    const bar = document.getElementById('bar');
+    const panel = document.getElementById('panel');
+    const latEl = document.getElementById('lat');
+    const demoBtn = document.getElementById('demoBtn');
+
+    // Online sounds (no local assets)
+    const sBeep = new Audio('https://www.soundjay.com/buttons/sounds/beep-07a.mp3');
+    const sOk   = new Audio('https://www.soundjay.com/buttons/sounds/button-29.mp3');
+    const sErr  = new Audio('https://www.soundjay.com/buttons/sounds/beep-10.mp3');
+
+    // Fake latency ticker
+    setInterval(()=>{ latEl.textContent = Math.max(8, Math.min(140, (latEl.textContent|0) + (Math.random()*24-12|0))); }, 500);
+
+    // Demo helper: generate operator ID quickly
+    demoBtn.addEventListener('click', ()=>{ user.value = 'RFOX_' + (100 + (Math.random()*900|0)); sBeep.play(); user.focus(); });
+
+    function authenticate(evt){
+      evt.preventDefault();
+      const u = user.value.trim();
+      const p = pass.value;
+      if(!u || !p){ statusEl.textContent = 'Missing credentials'; statusEl.className='status err'; panel.classList.add('shake'); sErr.play(); setTimeout(()=>panel.classList.remove('shake'),300); return; }
+
+      statusEl.textContent = 'Verifying identity…'; statusEl.className='status'; sBeep.play();
+      bar.style.width='0%';
+
+      // Fake progress
+      let prog = 0;
+      const steps = setInterval(()=>{
+        prog = Math.min(100, prog + (3 + Math.random()*12|0));
+        bar.style.width = prog + '%';
+        if(prog>30 && prog<35) statusEl.textContent = 'Checking entropy pools…';
+        if(prog>60 && prog<65) statusEl.textContent = 'Negotiating cipher suites…';
+        if(prog>=100){
+          clearInterval(steps);
+          // Password check (hardcoded)
+          if(p === 'rodgerfox'){
+            statusEl.textContent = 'Access granted'; statusEl.className='status ok'; sOk.play();
+            // Save username for later pages
+            try{ sessionStorage.setItem('hx_user', u); }catch(e){}
+            // Small delay then redirect
+            setTimeout(()=>{ location.href = 'dashboard.html'; }, 650);
+          } else {
+            statusEl.textContent = 'Access denied — invalid passphrase'; statusEl.className='status err'; sErr.play();
+            panel.classList.add('shake'); setTimeout(()=>panel.classList.remove('shake'),400);
+            pass.select();
+          }
+        }
+      }, 120);
+    }
+
+    form.addEventListener('submit', authenticate);
+    // Enter key convenience on inputs
+    [user,pass].forEach(i=>i.addEventListener('keydown', e=>{ if(e.key==='Enter'){ authenticate(e); }}));
+  </script>
+</body>
+</html>

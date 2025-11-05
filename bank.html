@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bank Access — Demo (Fictional)</title>
+<style>
+:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:12px;max-width:1100px;margin:0 auto}
+.card{padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);margin-bottom:10px}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--accent);color:#001;padding:8px;border:none;border-radius:8px;cursor:pointer}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+.modal.show{display:flex}
+</style>
+</head>
+<body>
+<header><h1>Bank Access — Demo (Fictional / Kenya-flavor)</h1><div class="small">All entries are fictional and marked Demo. No real banking systems are accessed.</div></header>
+<div class="wrap" id="wrap"></div>
+
+<div id="modal" class="modal" aria-hidden="true"></div>
+
+<script>
+function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
+const DATA = loadDataset();
+const wrap = document.getElementById('wrap');
+
+const fallbackBanks = [
+  {id:'b1',name:'Nairobi Community Bank (Demo)',accounts:[
+    {id:'a1',label:'Main Checking',iban:'KE12 3456 7890 1234',balance:12458.75,transactions:[{date:'2025-11-05',desc:'Payroll',amount:2500},{date:'2025-11-03',desc:'Coffee',amount:-4.5}]},
+    {id:'a2',label:'Savings',iban:'KE11 1111 2222 3333',balance:50220.00,transactions:[{date:'2025-10-20',desc:'Interest',amount:12.44}]}
+  ]}
+];
+
+const banks = (DATA && DATA.banks && DATA.banks.length) ? DATA.banks : fallbackBanks;
+
+const header = document.createElement('div'); header.className='card';
+header.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Banks</strong><div class="small">Demo-only fictional banks</div></div><div><a href="dashboard.html" class="btn">← Dashboard</a></div></div>`;
+wrap.appendChild(header);
+
+banks.forEach(bank=>{
+  const bcard = document.createElement('div'); bcard.className='card';
+  bcard.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${bank.name}</strong><div class="small">Demo bank</div></div><div><button class="btn" onclick="openBank('${bank.id}')">Open</button></div></div>`;
+  wrap.appendChild(bcard);
+});
+
+function openBank(id){
+  const bank = banks.find(b=>b.id===id); if(!bank) return;
+  const modal = document.getElementById('modal'); modal.innerHTML=''; const box=document.createElement('div'); box.style.width='92vw'; box.style.maxWidth='760px'; box.style.background='linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))'; box.style.padding='12px'; box.style.borderRadius='12px'; box.style.border='1px solid rgba(255,255,255,.04)';
+  box.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${bank.name}</strong><div class="small">Demo bank</div></div><div class="small">Accounts: ${bank.accounts.length}</div></header><div style="margin-top:8px" id="accountsList"></div><footer style="text-align:center;margin-top:12px"><button id="close" class="btn">Close</button></footer>`;
+  modal.appendChild(box); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  const accountsList = box.querySelector('#accountsList');
+  bank.accounts.forEach(acc=>{
+    const row = document.createElement('div'); row.className='card';
+    row.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:800">${escape(acc.label)}</div><div class="small">IBAN: ${escape(acc.iban)}</div></div><div style="text-align:right"><div style="font-weight:800">${formatCurrency(acc.balance)}</div><div class="small" style="margin-top:8px"><button class="btn" onclick="openAccount('${bank.id}','${acc.id}')">Open</button></div></div></div>`;
+    accountsList.appendChild(row);
+  });
+  box.querySelector('#close').addEventListener('click', closeModal);
+}
+
+function openAccount(bankId, accId){
+  const bank = banks.find(b=>b.id===bankId); const acc = bank.accounts.find(a=>a.id===accId);
+  const modal = document.getElementById('modal'); modal.innerHTML=''; const box=document.createElement('div'); box.style.width='92vw'; box.style.maxWidth='760px'; box.style.background='linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))'; box.style.padding='12px'; box.style.borderRadius='12px'; box.style.border='1px solid rgba(255,255,255,.04)';
+  box.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escape(acc.label)}</strong><div class="small">${escape(bank.name)}</div></div><div class="small">${escape(acc.iban)}</div></header>
+    <div style="margin-top:8px"><div><b>Balance:</b> ${formatCurrency(acc.balance)}</div><h4 style="margin-top:10px">Recent transactions</h4><div>${acc.transactions.map(t=>`<div class="small" style="padding:6px;border-bottom:1px dashed rgba(255,255,255,.03)">${escape(t.date)} — ${escape(t.desc)} <span style="float:right">${formatCurrency(t.amount)}</span></div>`).join('')}</div>
+    <h4 style="margin-top:8px">Simulate transfer (DEMO ONLY)</h4><div style="display:flex;gap:8px;margin-top:8px"><input id="toIban" placeholder="Destination IBAN" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04)"><input id="amount" placeholder="Amount" style="width:140px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04)"><button id="sendBtn" class="btn">Send</button></div><div class="small" style="margin-top:8px">This is a UI-only simulation and does not affect real bank accounts.</div></div>
+    <footer style="text-align:center;margin-top:10px"><button id="closeBtn" class="btn">Close</button></footer>`;
+  modal.appendChild(box); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  box.querySelector('#closeBtn').addEventListener('click', closeModal);
+  box.querySelector('#sendBtn').addEventListener('click', ()=>{
+    const to = box.querySelector('#toIban').value.trim(); const amt = parseFloat(box.querySelector('#amount').value);
+    if(!to || isNaN(amt) || amt<=0){ alert('Enter destination IBAN and positive amount'); return; }
+    acc.transactions.unshift({date:new Date().toISOString().slice(0,10),desc:`Demo transfer to ${to}`,amount:-amt});
+    acc.balance -= amt;
+    alert('Simulated transfer complete (UI-only). Local account updated.');
+    closeModal();
+  });
+}
+function closeModal(){ const modal = document.getElementById('modal'); modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); setTimeout(()=>modal.innerHTML='',250); }
+function formatCurrency(n){ return 'KES ' + Number(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function escape(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>

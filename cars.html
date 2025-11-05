@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cars — Demo</title>
+<style>
+:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace, monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:12px;max-width:1100px;margin:0 auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.card{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
+.row{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center}
+.icon{width:56px;height:56px;border-radius:10px;display:grid;place-items:center;background:rgba(24,255,98,.03)}
+.badge{padding:6px 8px;border-radius:999px;background:var(--accent);color:#001}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+.modal.show{display:flex}
+.car-shell{width:92vw;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.control{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent}
+.canvas-wrap{margin-top:12px;border-radius:8px;overflow:hidden;border:1px dashed rgba(255,255,255,.04)}
+.small{font-size:13px;color:#9fe7bd}
+</style>
+</head>
+<body>
+<header><h1>Cars Control — Demo</h1><div class="small">Open a car to see controls and a simple driving simulator (UI-only).</div></header>
+<div class="wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div class="small" id="counts"></div>
+    <div><a href="dashboard.html" style="color:var(--txt);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:8px;border-radius:8px">← Dashboard</a></div>
+  </div>
+
+  <div id="carsGrid" class="grid" style="margin-top:12px"></div>
+</div>
+
+<div id="modal" class="modal" aria-hidden="true"></div>
+
+<script>
+function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
+function escape(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+let DATA = loadDataset();
+const BUILTIN = {
+  cars:[
+    {"id":"c1","name":"FOX-Unit-1","model":"Nova GT","plate":"RFX-001","state":"ACTIVE","speed":48,"fuel":62,"engineOn":true,"locked":false,"location":{"lat":-1.2921,"lon":36.8219,"label":"Nairobi, KE"}},
+    {"id":"c2","name":"FOX-Unit-2","model":"Terra EV","plate":"RFX-002","state":"PARKED","speed":0,"fuel":82,"engineOn":false,"locked":true,"location":{"lat":-4.0435,"lon":39.6682,"label":"Mombasa, KE"}}
+  ]
+};
+
+function getCars(){ if(DATA && DATA.cars && DATA.cars.length) return DATA.cars; return BUILTIN.cars; }
+
+function renderCars(){
+  const grid = document.getElementById('carsGrid'); grid.innerHTML='';
+  const cars = getCars(); document.getElementById('counts').textContent = `Cars: ${cars.length}`;
+  cars.slice(0,1000).forEach(car=>{
+    const el = document.createElement('article'); el.className='card';
+    el.innerHTML = `<div class="row"><div class="icon">🚗</div><div><div style="font-weight:800">${escape(car.name)}</div><div class="small">${escape(car.model)} · ${escape(car.plate)}</div></div><div><div class="badge">${escape(car.state)}</div></div></div>`;
+    el.addEventListener('click', ()=>openCar(car));
+    grid.appendChild(el);
+  });
+}
+
+function openCar(car){
+  const modal = document.getElementById('modal'); modal.innerHTML='';
+  const wrap = document.createElement('div'); wrap.className='car-shell';
+  wrap.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center">
+    <div><strong>${escape(car.name)}</strong><div class="small">${escape(car.model)}</div></div>
+    <div class="small">${escape(car.plate)}</div>
+  </header>
+  <div style="margin-top:8px">
+    <div class="controls">
+      <button id="startEngine" class="control">${car.engineOn ? 'Stop Engine' : 'Start Engine'}</button>
+      <button id="gearDown" class="control">Gear -</button>
+      <div id="gearDisplay" class="control">Gear: N</div>
+      <button id="gearUp" class="control">Gear +</button>
+      <button id="toggleLock" class="control">${car.locked ? 'Unlock' : 'Lock'}</button>
+      <button id="closeBtn" class="control">Close</button>
+    </div>
+
+    <div style="margin-top:10px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="flex:1">
+          <div class="canvas-wrap"><canvas id="driveCanvas" width="800" height="320" style="width:100%;display:block"></canvas></div>
+        </div>
+        <div style="width:220px">
+          <div style="padding:10px;border-radius:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.03)">
+            <div><b>Speed:</b> <span id="speed">0</span> km/h</div>
+            <div><b>Fuel:</b> <span id="fuel">${car.fuel}</span>%</div>
+            <div><b>Engine:</b> <span id="eng">${car.engineOn ? 'ON' : 'OFF'}</span></div>
+            <div><b>Locked:</b> <span id="locked">${car.locked ? 'YES' : 'NO'}</span></div>
+            <div style="margin-top:8px"><button class="control" id="headlights">Flash Lights</button> <button class="control" id="gpsTrace">GPS Trace</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  modal.appendChild(wrap); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+
+  const canvas = document.getElementById('driveCanvas'); const ctx = canvas.getContext('2d');
+  let state = {x:canvas.width/2, y:canvas.height/2, heading:0, speed:car.speed>0?car.speed:0, gear:0, engine:car.engineOn, fuel:car.fuel};
+  const speedEl = wrap.querySelector('#speed'), fuelEl = wrap.querySelector('#fuel'), engEl = wrap.querySelector('#eng'), lockedEl = wrap.querySelector('#locked'), gearDisplay = wrap.querySelector('#gearDisplay');
+
+  let acc=false, brake=false, steerLeft=false, steerRight=false;
+
+  function draw(){
+    ctx.fillStyle = '#03110a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#052015';
+    for(let gx=0;gx<canvas.width;gx+=40){ ctx.fillRect(gx,0,1,canvas.height); }
+    for(let gy=0;gy<canvas.height;gy+=40){ ctx.fillRect(0,gy,canvas.width,1); }
+    ctx.save(); ctx.translate(state.x, state.y); ctx.rotate(state.heading);
+    ctx.fillStyle = '#49ffd7'; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-10,8); ctx.lineTo(-10,-8); ctx.closePath(); ctx.fill(); ctx.restore();
+    ctx.fillStyle = '#9fe7bd'; ctx.fillText('Demo driving simulation (UI-only)', 10, 20);
+  }
+
+  function step(dt){
+    if(state.engine && state.fuel>0){
+      const accel = acc ? (state.gear>0 ? 30*state.gear : 5) : 0;
+      const braking = brake ? 80 : 0;
+      state.speed += (accel - braking) * dt;
+      if(state.speed < 0) state.speed = 0;
+      if(state.speed > 220) state.speed = 220;
+      const turn = (steerLeft? -1:0) + (steerRight?1:0);
+      state.heading += turn * 0.02 * (state.speed/30 + 0.5);
+      state.x += Math.cos(state.heading) * state.speed * dt * 0.5;
+      state.y += Math.sin(state.heading) * state.speed * dt * 0.5;
+      if(state.x < 0) state.x = canvas.width;
+      if(state.x > canvas.width) state.x = 0;
+      if(state.y < 0) state.y = canvas.height;
+      if(state.y > canvas.height) state.y = 0;
+      state.fuel -= Math.max(0.01, state.speed/2000);
+      if(state.fuel < 0) state.fuel = 0;
+    } else {
+      state.speed = Math.max(0, state.speed - 20*dt);
+    }
+    speedEl.textContent = Math.round(state.speed);
+    fuelEl.textContent = Math.round(state.fuel);
+    engEl.textContent = state.engine ? 'ON' : 'OFF';
+    lockedEl.textContent = car.locked ? 'YES' : 'NO';
+    gearDisplay.textContent = 'Gear: ' + (state.gear === 0 ? 'N' : state.gear);
+  }
+
+  let lastTs = performance.now();
+  function loop(ts){
+    const dt = (ts - lastTs)/1000; lastTs = ts;
+    step(dt); draw();
+    if(modal.classList.contains('show')) requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  const startBtn = wrap.querySelector('#startEngine'), gearUp = wrap.querySelector('#gearUp'), gearDown = wrap.querySelector('#gearDown'), lockBtn = wrap.querySelector('#toggleLock'), closeBtn = wrap.querySelector('#closeBtn'), headlights = wrap.querySelector('#headlights'), gpsTrace = wrap.querySelector('#gpsTrace');
+  startBtn.addEventListener('click', ()=>{ state.engine = !state.engine; startBtn.textContent = state.engine ? 'Stop Engine' : 'Start Engine'; });
+  gearUp.addEventListener('click', ()=>{ if(state.gear < 6) state.gear++; });
+  gearDown.addEventListener('click', ()=>{ if(state.gear > 0) state.gear--; });
+  lockBtn.addEventListener('click', ()=>{ car.locked = !car.locked; lockBtn.textContent = car.locked ? 'Unlock' : 'Lock'; lockedEl.textContent = car.locked ? 'YES' : 'NO'; });
+  headlights.addEventListener('click', ()=>{ wrap.style.boxShadow = '0 0 40px rgba(255,255,150,.8)'; setTimeout(()=>wrap.style.boxShadow='',300); });
+  gpsTrace.addEventListener('click', ()=>{ alert('GPS Trace simulated: approximate route fixed (UI-only)'); });
+  closeBtn.addEventListener('click', closeModal);
+
+  document.addEventListener('keydown', keyDownHandler);
+  document.addEventListener('keyup', keyUpHandler);
+  function keyDownHandler(e){ if(e.key === 'ArrowUp' || e.key === 'w') acc = true; if(e.key === 'ArrowDown' || e.key === 's') brake = true; if(e.key === 'ArrowLeft' || e.key === 'a') steerLeft = true; if(e.key === 'ArrowRight' || e.key === 'd') steerRight = true; if(e.key === 'g') { state.gear = Math.min(6, state.gear + 1); } if(e.key === 'b') { state.gear = Math.max(0, state.gear - 1); } }
+  function keyUpHandler(e){ if(e.key === 'ArrowUp' || e.key === 'w') acc = false; if(e.key === 'ArrowDown' || e.key === 's') brake = false; if(e.key === 'ArrowLeft' || e.key === 'a') steerLeft = false; if(e.key === 'ArrowRight' || e.key === 'd') steerRight = false; }
+
+  function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); document.removeEventListener('keydown', keyDownHandler); document.removeEventListener('keyup', keyUpHandler); setTimeout(()=>modal.innerHTML='',250); }
+  window.closeModal = closeModal;
+}
+
+renderCars();
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const m=document.getElementById('modal'); if(m.classList.contains('show')) m.classList.remove('show'); } });
+</script>
+</body>
+</html>

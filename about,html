@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>About & Safety — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:900px;margin:0 auto}
+.card{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
+.small{font-size:13px;color:var(--muted)}
+.link{color:var(--neon);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:6px;border-radius:8px}
+</style>
+</head>
+<body>
+<header><h1>About this Demo</h1></header>
+<div class="wrap">
+  <section class="card">
+    <p class="small">This entire suite is a local, client-side demonstration. It is explicitly designed as a simulation/prototype. It does not access real phones, cars, banks, school systems, or networks. No attacks, scanning, or unauthorized access is performed. Use this for UI design, training scenarios, or mockups only.</p>
+    <p class="small">Files are stored in your browser (localStorage) when you use the Dashboard generator. Use the Settings page to export/import data. Keep data private and do not distribute anything that contains real personal or confidential data.</p>
+    <div style="margin-top:12px"><a class="link" href="dashboard.html">← Dashboard</a> <a class="link" href="settings.html" style="margin-left:8px">Settings</a></div>
+  </section>
+</div>
+</body>
+</html>

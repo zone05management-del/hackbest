@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trace / Alerts — Demo</title>
+<style>
+:root{--bg:#000;--txt:#c9ffe1;--accent:#18ff62}
+*{box-sizing:border-box}
+html,body{margin:0;font:15px/1.6 ui-monospace,monospace;background:var(--bg);color:var(--txt)}
+header{padding:14px;text-align:center}
+.wrap{padding:18px}
+.panel{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))}
+.small{color:#9fe7bd}
+.list{margin-top:8px}
+.item{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)}
+.triang{height:320px;border:1px dashed rgba(255,255,255,.03);display:flex;align-items:center;justify-content:center;margin-top:12px}
+.btn{padding:8px;border-radius:8px;background:#18ff62;border:none;color:#001}
+</style>
+</head>
+<body>
+<header><h1>Trace / Alerts — Demo</h1></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Active traces</strong><div class="small">Simulated triangulation</div></div>
+      <div><button class="btn" id="runTrace">Run Triangulation</button></div>
+    </div>
+
+    <div class="list" id="traceList">
+      <div class="item">[2025-11-05 17:30] Suspicious connection — origin: unknown</div>
+      <div class="item">[2025-11-05 17:31] Multiple failed auth attempts — ip 192.0.2.45</div>
+    </div>
+
+    <div class="triang" id="triang">Triangulation map (simulated) — press Run Triangulation</div>
+
+    <div style="margin-top:12px" class="small">This page contains a cosmetic simulation of trace analysis and triangulation for demo purposes only. No real scanning or tracking is performed.</div>
+  </section>
+</div>
+
+<footer style="text-align:center;padding:12px"><a href="dashboard.html" style="color:var(--txt);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:8px;border-radius:8px">← Back to Dashboard</a></footer>
+
+<script>
+document.getElementById('runTrace').addEventListener('click', ()=>{
+  const box = document.getElementById('triang');
+  box.innerHTML = '';
+  const canvas = document.createElement('canvas'); canvas.width=680; canvas.height=300; box.appendChild(canvas);
+  const ctx = canvas.getContext('2d'); ctx.fillStyle='#05110a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const dots = [{label:'AP1',x:20,y:30},{label:'AP2',x:70,y:20},{label:'AP3',x:45,y:80}];
+  dots.forEach(d=>{ const cx = canvas.width * d.x/100, cy = canvas.height * d.y/100; ctx.beginPath(); ctx.arc(cx,cy,6,0,Math.PI*2); ctx.fillStyle='#18ff62'; ctx.fill(); ctx.fillStyle='#9fe7bd'; ctx.fillText(d.label, cx+8, cy+4); });
+  let step=0;
+  const iv=setInterval(()=>{ step++; ctx.globalAlpha=0.15; ctx.fillStyle='#18ff62'; ctx.beginPath(); ctx.ellipse(canvas.width*0.5, canvas.height*0.45, 20*step, 12*step, 0, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1; ctx.fillStyle='#c9ffe1'; ctx.fillText('Triangulating… ' + Math.min(100, step*8) + '%', 10, 16); if(step>13){ clearInterval(iv); ctx.fillText('Approx. origin: 37.7750, -122.4192 (simulated)', 10, 32); } },180);
+  setTimeout(()=> { const l=document.getElementById('traceList'); const el=document.createElement('div'); el.className='item'; el.textContent = `[${new Date().toISOString().slice(0,19).replace('T',' ')}] Triangulation complete — approx origin: 37.7750, -122.4192 (simulated)`; l.insertBefore(el, l.firstChild); }, 2600);
+});
+</script>
+</body>
+</html>

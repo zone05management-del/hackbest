@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Satellite Link — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
+.canvas{width:100%;height:320px;background:#03110a;border-radius:8px}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<header><h1>Satellite Link — Demo</h1><div class="small">Visual uplink/downlink simulator (UI-only)</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Satellites</strong><div class="small">Simulated list</div></div>
+      <div><a class="btn" href="dashboard.html">← Dashboard</a></div>
+    </div>
+
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="pointBtn">Point to Location</button>
+      <button class="btn" id="syncBtn">Initiate Sync</button>
+    </div>
+
+    <div style="margin-top:12px"><div id="map" class="canvas"></div></div>
+    <div id="log" style="margin-top:8px" class="small"></div>
+  </section>
+</div>
+
+<script>
+const map = document.getElementById('map'), log = document.getElementById('log');
+function drawMap(){
+  map.innerHTML = '';
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS,'svg'); svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+  const circ = document.createElementNS(svgNS,'circle'); circ.setAttribute('cx','50%'); circ.setAttribute('cy','20%'); circ.setAttribute('r','20'); circ.setAttribute('fill','#18ff62');
+  svg.appendChild(circ);
+  map.appendChild(svg);
+}
+drawMap();
+
+document.getElementById('pointBtn').addEventListener('click', ()=>{
+  log.textContent = 'Pointing satellite to simulated coordinates (UI-only)...';
+  setTimeout(()=> log.textContent = 'Satellite pointed — simulated uplink active', 1200);
+});
+document.getElementById('syncBtn').addEventListener('click', ()=>{
+  log.textContent = 'Initiating sync (simulated)...';
+  setTimeout(()=> log.textContent = 'Sync complete (simulated)', 1600);
+});
+</script>
+</body>
+</html>

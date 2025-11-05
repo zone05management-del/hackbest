@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tools — Password Cracker (Demo)</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
+.row{display:flex;gap:8px;align-items:center}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.progress{height:12px;background:rgba(255,255,255,.04);border-radius:8px;overflow:hidden;margin-top:8px}
+.bar{height:100%;width:0;background:linear-gradient(90deg,#00ff99,#38fbe0)}
+.table{margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,.03);padding:8px}
+</style>
+</head>
+<body>
+<header><h1>Tools — Password Cracker (Simulated)</h1><div class="small">UI-only job simulation. No attacks are performed.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Cracker</strong><div class="small">Wordlists · masks · rules (demo)</div></div>
+      <div><a class="btn" href="dashboard.html">← Dashboard</a></div>
+    </div>
+
+    <div style="margin-top:10px" class="row">
+      <input id="target" placeholder="Target ID (simulated)" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--neon)">
+      <select id="mode" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--neon)"><option value="wordlist">Wordlist</option><option value="mask">Mask</option><option value="brute">Brute</option></select>
+      <button id="start" class="btn">Start Job</button>
+    </div>
+
+    <div class="progress"><div id="jobBar" class="bar"></div></div>
+    <div id="jobLog" class="table small"></div>
+
+    <h4 style="margin-top:12px">Jobs Queue</h4>
+    <div id="queue" class="table small">No jobs yet.</div>
+  </section>
+</div>
+
+<script>
+let job = null, jobIv;
+const jobBar = document.getElementById('jobBar'), jobLog = document.getElementById('jobLog'), queue = document.getElementById('queue');
+function log(msg){ jobLog.innerHTML = `<div>${new Date().toISOString().slice(11,19)} — ${msg}</div>` + jobLog.innerHTML; }
+document.getElementById('start').addEventListener('click', ()=>{
+  const t = document.getElementById('target').value.trim() || 'demo-target';
+  const m = document.getElementById('mode').value;
+  if(job){ alert('A job is already running (only one simulated job at a time).'); return; }
+  job = {id: 'job-' + Math.random().toString(36).slice(2,8), target: t, mode: m, progress: 0};
+  queue.innerHTML = `Running: <b>${job.id}</b> target: ${job.target} mode: ${job.mode}`;
+  log(`Job ${job.id} queued (simulated).`);
+  startJob();
+});
+function startJob(){
+  log('Starting simulated cracking job...');
+  jobIv = setInterval(()=>{
+    job.progress = Math.min(100, job.progress + (2 + Math.random()*8|0));
+    jobBar.style.width = job.progress + '%';
+    if(job.progress > 20 && job.progress < 25) log('Loading wordlist… (demo)');
+    if(job.progress > 50 && job.progress < 55) log('Applying masks and rules… (demo)');
+    if(job.progress >= 100){
+      clearInterval(jobIv);
+      log('Job completed — no real cracking performed (demo only).');
+      queue.innerHTML = 'No jobs running.';
+      const found = Math.random() > 0.85 ? 'password123' : null;
+      if(found) log('Result (simulated): ' + found);
+      job = null;
+      setTimeout(()=> jobBar.style.width='0%', 1000);
+    }
+  }, 250);
+}
+</script>
+</body>
+</html>

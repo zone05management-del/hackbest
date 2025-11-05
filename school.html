@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>School Admin — Demo</title>
+<style>
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
+.small{font-size:13px;color:var(--muted)}
+.list{margin-top:12px}
+.student{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.notice{margin-top:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03)}
+</style>
+</head>
+<body>
+<header><h1>School Admin — Demo</h1><div class="small">Demo-only interface for sample student records. Changes are local and fictional only.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Students</strong></div><div><a class="btn" href="dashboard.html">← Dashboard</a></div></div>
+    <div id="students" class="list"></div>
+    <div class="notice">WARNING: All edits here are purely local demo edits. No real school systems or data are accessed.</div>
+  </section>
+</div>
+
+<script>
+/* Simple in-memory student list for demo */
+const students = [
+  {id:'s1',name:'Jane Mwangi',class:'Form 3',roll:12,subjects:{Math:68,Eng:74,Bio:82}},
+  {id:'s2',name:'Peter Otieno',class:'Form 4',roll:3,subjects:{Math:58,Eng:64,Phy:72}},
+  {id:'s3',name:'Aisha Noor',class:'Form 2',roll:21,subjects:{Math:88,Eng:91,Chem:85}}
+];
+
+function render(){
+  const el = document.getElementById('students'); el.innerHTML = '';
+  students.forEach(s=>{
+    const node = document.createElement('div'); node.className='student';
+    node.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${s.name}</strong><div class="small">${s.class} · Roll ${s.roll}</div></div><div><button class="btn" data-id="${s.id}">Edit</button></div></div>
+      <div style="margin-top:8px" class="small">Subjects: ${Object.entries(s.subjects).map(([k,v])=>`${k}: ${v}`).join(' · ')}</div>`;
+    el.appendChild(node);
+  });
+  el.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>editStudent(b.dataset.id)));
+}
+render();
+
+function editStudent(id){
+  const s = students.find(x=>x.id===id);
+  const name = prompt('Student name', s.name);
+  if(name === null) return;
+  s.name = name;
+  // update one subject score for demo
+  const subj = prompt('Subject to change (Math/Eng/Bio/Chem/Phy)', Object.keys(s.subjects)[0]);
+  if(subj && s.subjects[subj] !== undefined){
+    const score = parseInt(prompt('New score for ' + subj, s.subjects[subj]));
+    if(!isNaN(score)) s.subjects[subj] = Math.max(0, Math.min(100, score));
+  }
+  alert('Student record updated locally (demo-only).');
+  render();
+}
+</script>
+</body>
+</html>

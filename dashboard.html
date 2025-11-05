@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hacker Dashboard</title>
+  <style>
+    :root {
+      --bg:#000; --neon:#00ff99; --neon2:#38fbe0; --danger:#ff3b3b; --card:#070b08;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; padding: 0; font-family: "Courier New", ui-monospace, monospace;
+      background: var(--bg); color: var(--neon);
+      overflow-x: hidden;
+    }
+
+    /* MATRIX BACKDROP */
+    .matrix-bg { position: fixed; inset: 0; z-index: 0; }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    /* HEADER */
+    header { position: sticky; top: 0; z-index: 2; background: rgba(0,0,0,.6);
+      backdrop-filter: blur(4px); border-bottom: 1px solid rgba(0,255,153,.25);
+      text-align: center; padding: 16px 12px; }
+    header h1 { margin: 0; font-size: clamp(18px, 3vw, 28px); letter-spacing: .12em; text-shadow: 0 0 8px var(--neon); }
+
+    /* GRID */
+    .wrap { position: relative; z-index: 1; padding: 18px; }
+    .dashboard { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+    /* CARD */
+    .card { position: relative; background: linear-gradient(180deg, rgba(0,255,153,.06), rgba(0,0,0,.6));
+      border: 1px solid rgba(0,255,153,.35); border-radius: 14px; padding: 16px; cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45), inset 0 0 0 1px rgba(0,255,153,.1);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .card:hover { transform: translateY(-2px); border-color: var(--neon); box-shadow: 0 0 0 1px var(--neon) inset, 0 0 24px rgba(0,255,153,.35); }
+
+    .row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; }
+    .icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 12px;
+      background: radial-gradient(120px 120px at 50% 40%, rgba(0,255,153,.15), rgba(0,0,0,0));
+      box-shadow: inset 0 0 12px rgba(0,255,153,.25); }
+    .icon svg { width: 36px; height: 36px; stroke: var(--neon); fill: none; stroke-width: 1.8; filter: drop-shadow(0 0 6px rgba(0,255,153,.55)); }
+
+    .title { font-weight: 800; letter-spacing: .08em; margin: 0; }
+    .sub { margin: 4px 0 0; font-size: 12px; color: #a5ffd7; opacity: .9; }
+
+    .badge { justify-self: end; padding: 4px 8px; border-radius: 999px; font-size: 11px; color: #02160e;
+      background: var(--neon); box-shadow: 0 0 16px rgba(0,255,153,.35); }
+    .badge.warn { background: #ffe15c; }
+    .badge.danger { background: var(--danger); color: #fff; box-shadow: 0 0 16px rgba(255,59,59,.45); animation: pulse 1.2s infinite; }
+
+    @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.06)} 100%{transform:scale(1)} }
+
+    /* Center scan spinner */
+    .scan { width: 84px; height: 84px; margin: 18px auto 24px; border-radius: 50%;
+      border: 3px solid rgba(0,255,153,.25); border-top-color: var(--neon2); animation: spin 1.3s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Alert toast */
+    .alert { position: fixed; right: 16px; top: 16px; z-index: 3; display: none; align-items: center; gap: 10px;
+      background: linear-gradient(180deg, rgba(255,59,59,.95), rgba(120,0,0,.95)); color: #fff; border:1px solid rgba(255,255,255,.25);
+      padding: 10px 14px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.55); }
+    .alert button { all: unset; padding: 6px 10px; border-radius: 8px; background:#111; color:#fff; cursor:pointer; border:1px solid rgba(255,255,255,.2) }
+
+    /* Footer */
+    footer { position: sticky; bottom: 0; text-align: center; padding: 10px; color:#a5ffd7; opacity:.85 }
+  </style>
+</head>
+<body>
+  <div class="matrix-bg"><canvas id="matrix"></canvas></div>
+
+  <header>
+    <h1>HACKER CONTROL CENTER — ACCESS GRANTED</h1>
+  </header>
+
+  <div class="wrap">
+    <div class="scan" title="Active system scan"></div>
+
+    <section class="dashboard" id="cards">
+      <!-- System Scan -->
+      <article class="card" onclick="go('scanner.html')">
+        <div class="row">
+          <div class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4M4 12h4M16 12h4"/></svg>
+          </div>
+          <div>
+            <h3 class="title">System Scan</h3>
+            <p class="sub">Enumerating subnets · ports · services</p>
+          </div>
+          <span class="badge">LIVE</span>
+        </div>
+      </article>
+
+      <!-- Network Scan -->
+      <article class="card" onclick="go('network.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M2 17h20M6 13h12M9 9h6M11 5h2"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Network Scan</h3>
+            <p class="sub">Routers · Wi‑Fi · CCTV · IoT</p>
+          </div>
+          <span class="badge">SCAN</span>
+        </div>
+      </article>
+
+      <!-- File Access -->
+      <article class="card" onclick="go('files.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M4 6h7l3 3h6v9a2 2 0 0 1-2 2H4z"/></svg>
+          </div>
+          <div>
+            <h3 class="title">File Access</h3>
+            <p class="sub">Volumes · dumps · archives</p>
+          </div>
+          <span class="badge">MOUNTED</span>
+        </div>
+      </article>
+
+      <!-- Password Cracker -->
+      <article class="card" onclick="go('tools.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="10" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Password Cracker</h3>
+            <p class="sub">Wordlists · masks · rainbow</p>
+          </div>
+          <span class="badge warn">RUN</span>
+        </div>
+      </article>
+
+      <!-- Online Devices -->
+      <article class="card" onclick="go('devices.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><path d="M2 12a10 10 0 0 1 20 0M5 12a7 7 0 0 1 14 0M8 12a4 4 0 0 1 8 0"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Online Devices</h3>
+            <p class="sub">IPs · MAC · latency</p>
+          </div>
+          <span class="badge">42</span>
+        </div>
+      </article>
+
+      <!-- Satellite Link -->
+      <article class="card" onclick="go('satellite.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M14 10l6-6M8 16l-6 6M9 7l8 8M7 9l8 8"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Satellite Link</h3>
+            <p class="sub">Uplink · downlink · relay</p>
+          </div>
+          <span class="badge">SYNC</span>
+        </div>
+      </article>
+
+      <!-- System Override -->
+      <article class="card" onclick="go('override.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg>
+          </div>
+          <div>
+            <h3 class="title">System Override</h3>
+            <p class="sub">Root · kernels · services</p>
+          </div>
+          <span class="badge danger">ARMED</span>
+        </div>
+      </article>
+
+      <!-- Cars Control -->
+      <article class="card" onclick="go('cars.html')">
+        <div class="row">
+          <div class="icon">
+            <!-- car silhouette -->
+            <svg viewBox="0 0 24 24"><path d="M3 14l2-4 3-2h8l3 2 2 4v3H3z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Cars Control</h3>
+            <p class="sub">GPS · locks · engine · cams</p>
+          </div>
+          <span class="badge">TRACE</span>
+        </div>
+      </article>
+
+      <!-- Phones Control -->
+      <article class="card" onclick="go('phones.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Phones Control</h3>
+            <p class="sub">IMEI · apps · location</p>
+          </div>
+          <span class="badge">LIVE</span>
+        </div>
+      </article>
+
+      <!-- Bank Access -->
+      <article class="card" onclick="go('bank.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6v10H3V10z"/><path d="M7 14h10M7 18h10"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Bank Access</h3>
+            <p class="sub">Accounts · transfers · logs</p>
+          </div>
+          <span class="badge warn">LOCKED</span>
+        </div>
+      </article>
+
+      <!-- Cards -->
+      <article class="card" onclick="go('cards.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 10h6"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Cards</h3>
+            <p class="sub">Credit · Debit · NFC</p>
+          </div>
+          <span class="badge">VIEW</span>
+        </div>
+      </article>
+
+      <!-- Trace / Alerts -->
+      <article class="card" onclick="go('trace.html')">
+        <div class="row">
+          <div class="icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l9 18H3z"/><circle cx="12" cy="17" r="1"/></svg>
+          </div>
+          <div>
+            <h3 class="title">Trace / Alerts</h3>
+            <p class="sub">Active threats · blocks</p>
+          </div>
+          <span class="badge danger">ALERT</span>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <div id="toast" class="alert">
+    <span>🚨 TRACE DETECTED — origin triangulating…</span>
+    <button onclick="blockTrace()">BLOCK</button>
+  </div>
+
+  <footer>© RodgerFox HackSuite — v1.0</footer>
+
+  <script>
+    // Navigate helper
+    function go(page){ location.href = page; }
+
+    // Toast alert
+    const toast = document.getElementById('toast');
+    function triggerAlert(){ toast.style.display='flex'; }
+    function blockTrace(){ toast.innerHTML = '<span>🛡️ TRACE BLOCKED — route poisoned</span>'; setTimeout(()=> toast.style.display='none', 1600); }
+
+    // MATRIX RAIN (binary-heavy)
+    const c = document.getElementById('matrix');
+    const x = c.getContext('2d');
+    function size(){ c.width = innerWidth; c.height = innerHeight; cols = Math.ceil(c.width/14); drops = Array(cols).fill(1); }
+    let cols = 0, drops = [];
+    size(); addEventListener('resize', size);
+    const glyphs = '0011010011010101010011001101010101010001101010010101010101010101';
+    const fs = 14;
+    (function draw(){
+      x.fillStyle = 'rgba(0,0,0,0.07)'; x.fillRect(0,0,c.width,c.height);
+      x.fillStyle = '#00ff99'; x.font = fs+'px monospace';
+      for(let i=0;i<drops.length;i++){
+        const ch = glyphs[Math.random()*glyphs.length|0];
+        x.fillText(ch, i*fs, drops[i]*fs);
+        if(drops[i]*fs>c.height && Math.random()>0.975) drops[i]=0; drops[i]++;
+      }
+      requestAnimationFrame(draw);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings — Demo</title>
+<style>
+:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
+header{padding:14px;text-align:center}
+.wrap{padding:18px;max-width:1100px;margin:0 auto}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04)}
+.btn{background:var(--accent);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header><h1>Demo Settings & Data</h1><div class="small">Manage exported dataset and demo options.</div></header>
+<div class="wrap">
+  <section class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Dataset</strong></div><div><a class="btn" href="dashboard.html">← Dashboard</a></div></div>
+    <div style="margin-top:10px" class="small">Export / Import demo dataset (JSON) stored in localStorage.</div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button id="exportBtn" class="btn">Export JSON</button>
+      <input type="file" id="importFile" style="padding:8px;background:transparent;color:var(--txt)">
+      <button id="clearBtn" class="btn" style="background:#ff6b6b">Clear Local Data</button>
+    </div>
+    <div id="msg" style="margin-top:10px" class="small"></div>
+  </section>
+</div>
+
+<script>
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const raw = localStorage.getItem('demoDataset'); if(!raw){ alert('No dataset to export. Generate one from Dashboard.'); return; }
+  const blob = new Blob([raw], {type:'application/json'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='demo_dataset.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  document.getElementById('msg').textContent = 'Export started.';
+});
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader(); reader.onload = ()=>{ try{ const js = JSON.parse(reader.result); localStorage.setItem('demoDataset', JSON.stringify(js)); document.getElementById('msg').textContent='Dataset imported successfully.'; }catch(err){ document.getElementById('msg').textContent = 'Invalid JSON.'; } }; reader.readAsText(f);
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{ if(confirm('Clear demo dataset from localStorage?')){ localStorage.removeItem('demoDataset'); document.getElementById('msg').textContent='Local demo data cleared.'; }});
+</script>
+</body>
+</html>
