@@ -3,183 +3,304 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Phones — Demo</title>
+<title>Phones — Enhanced Demo</title>
 <style>
-:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+:root{
+  --bg:#050807; --txt:#c9ffe1; --accent:#18ff62; --muted:#9fe7bd; --panel: rgba(255,255,255,.02);
+}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace, monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:12px;max-width:1100px;margin:0 auto}
-.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.search{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--txt)}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:12px}
-.card{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
-.row{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center}
-.icon{width:56px;height:56px;border-radius:10px;display:grid;place-items:center;background:rgba(24,255,98,.03)}
-.badge{padding:6px 8px;border-radius:999px;background:var(--accent);color:#001}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.02), transparent),var(--bg);color:var(--txt);font:15px/1.5 ui-monospace, monospace;overflow:auto}
+.matrix-bg{position:fixed;inset:0;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:18px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);padding:12px 18px;border-bottom:1px solid rgba(24,255,98,.06);z-index:2}
+header h1{margin:0;color:var(--accent);letter-spacing:.10em}
+.controls{display:flex;gap:8px;align-items:center}
+.search{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--txt);min-width:160px}
+.btn{background:var(--accent);color:#001;border:none;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+.ghost{background:transparent;border:1px solid rgba(255,255,255,.04);padding:8px;border-radius:8px;color:var(--txt)}
 .small{font-size:13px;color:var(--muted)}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+
+/* grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+.card{padding:10px;border-radius:12px;background:linear-gradient(180deg,var(--panel), rgba(0,0,0,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer;display:flex;gap:8px;align-items:center}
+.card .icon{width:56px;height:56px;border-radius:10px;background:rgba(24,255,98,.04);display:grid;place-items:center;font-size:22px}
+.badge{padding:6px 8px;border-radius:999px;background:var(--accent);color:#02160e;font-weight:700}
+
+/* modal / phone view */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.72);z-index:60;padding:12px}
 .modal.show{display:flex}
-.phone-shell{width:92vw;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
-.app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.app-btn{padding:10px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.03);cursor:pointer;text-align:left}
-#phoneMain{margin-top:10px;border-top:1px dashed rgba(255,255,255,.03);padding-top:10px}
-.app-icon{font-size:18px;margin-right:8px}
-.mobile-friendly-note{font-size:13px;color:var(--muted);margin-top:8px}
-@media (max-width:640px){ .row{grid-template-columns:48px 1fr auto} .icon{width:48px;height:48px} .app-grid{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))} }
+.shell{width:94vw;max-width:1100px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.shell header{display:flex;justify-content:space-between;align-items:center}
+.app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+.app-btn{display:flex;gap:8px;align-items:center;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.03);background:transparent;cursor:pointer}
+.app-icon{width:36px;height:36px;border-radius:8px;background:rgba(0,0,0,.25);display:grid;place-items:center}
+
+/* phone main */
+.phone-main{margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px}
+.phone-left{min-height:320px;padding:8px;border-radius:10px;background:#03110a;border:1px dashed rgba(255,255,255,.03)}
+.phone-right{padding:8px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.01),rgba(255,255,255,.005));border:1px solid rgba(255,255,255,.03)}
+.map-canvas{width:100%;height:320px;border-radius:8px;background:#071411;position:relative;overflow:hidden}
+.map-image{transform-origin:center center;touch-action:none}
+.log{margin-top:8px;padding:8px;border-radius:8px;background:rgba(0,0,0,.3);font-size:13px;color:var(--muted);min-height:36px}
+
+/* globe controls */
+.globe-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+
+/* responsive */
+@media (max-width:980px){ .phone-main{grid-template-columns:1fr} .phone-right{order:2} }
+
+/* disclaimer */
+.disclaimer{margin-top:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03);color:var(--muted);font-size:13px}
 </style>
 </head>
 <body>
-<header><h1>Phones — Devices (Demo)</h1><div class="small">Loads mock phones. All content is fictional and UI-only.</div></header>
-<div class="wrap">
-  <div class="controls">
-    <input class="search" id="search" placeholder="Search name, model, IMEI, city..." />
-    <button class="btn ghost" id="refresh">Reload dataset</button>
-    <a class="btn" href="dashboard.html">← Dashboard</a>
-  </div>
+<div class="matrix-bg"><canvas id="matrix"></canvas></div>
 
-  <div id="counts" style="margin-top:10px" class="small"></div>
+<header>
+  <div>
+    <h1>Phones — Enhanced Demo</h1>
+    <div class="small">Large mock dataset, interactive globe, many apps. Demo-only: no real access.</div>
+  </div>
+  <div class="controls">
+    <input id="search" class="search" placeholder="Search name, model, IMEI, city..." />
+    <button id="reload" class="ghost">Reload</button>
+    <a href="dashboard.html" class="ghost">← Dashboard</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="counts" class="small" style="margin-bottom:8px">Phones: —</div>
 
   <div id="phonesGrid" class="grid"></div>
+
+  <div class="disclaimer">This demo is fully client-side and fictional. It does not access or modify real devices or systems. All "hacking" effects are simulated.</div>
 </div>
 
+<!-- modal -->
 <div id="modal" class="modal" aria-hidden="true"></div>
 
 <script>
-/* Minimal inline mock-data loader & UI. If a demoDataset exists in localStorage, it will be used; otherwise built-in mock data is used. */
-function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
-function escape(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* Enhanced Phones page:
+ - Matrix background (same "raining code" effect as dashboard)
+ - Runtime generator: creates many mock phones if demoDataset absent
+ - Full-screen modal with many apps, interactive globe (image pan/zoom/rotate), visible trace/exploit UI
+ - All UI-only, demo/simulated (clear disclaimer)
+*/
 
-let DATA = loadDataset();
-const BUILTIN = {
-  phones:[
-    {"id":"p1","name":"Alice's Phone","model":"Aurora X1","os":"Android 12","imei":"356789012345678","status":"ONLINE","battery":86,"charging":false,"network":"Safarinet","rssi":-63,"lastSeen":"2025-11-05 16:22","location":{"lat":-1.2921,"lon":36.8219,"label":"Nairobi, KE"},"installed":["ChatNow","MapsPro","BankVault","CamSecure"],"messages":[{"from":"Bob","time":"16:00","text":"On my way."}],"calls":[],"files":[],"photos":[]},
-    {"id":"p2","name":"Work Phone","model":"Sienna P9","os":"iOS 17","imei":"490123456789012","status":"SLEEP","battery":42,"charging":true,"network":"MobiPlus","rssi":-50,"lastSeen":"2025-11-05 09:03","location":{"lat":-4.0435,"lon":39.6682,"label":"Mombasa, KE"},"installed":["Mail","Slack","Docs","MapsPro"],"messages":[{"from":"IT","time":"08:55","text":"Update policy."}],"calls":[],"files":[],"photos":[]}
-  ]
-};
+// ===== matrix rain (same style) =====
+const matrixCanvas = document.getElementById('matrix');
+const mctx = matrixCanvas.getContext('2d');
+let mW,mH,mCols,mDrops;
+function mSize(){ mW=matrixCanvas.width=innerWidth; mH=matrixCanvas.height=innerHeight; mCols=Math.ceil(mW/14); mDrops=Array(mCols).fill(0); }
+addEventListener('resize', mSize); mSize();
+const glyphs = 'アカサタナハマヤラワ0123456789$#=+<>*';
+(function mLoop(ts){
+  mctx.fillStyle = 'rgba(5,8,7,0.2)'; mctx.fillRect(0,0,mW,mH);
+  mctx.fillStyle = '#18ff62'; mctx.font = '14px monospace';
+  for(let i=0;i<mCols;i++){
+    const ch = glyphs[Math.floor(Math.random()*glyphs.length)];
+    mctx.fillText(ch, i*14, mDrops[i]*14);
+    if(mDrops[i]*14 > mH && Math.random()>0.975) mDrops[i]=0; else mDrops[i]++;
+  }
+  requestAnimationFrame(mLoop);
+})();
 
-function getPhones(){
-  if(DATA && DATA.phones && DATA.phones.length) return DATA.phones;
-  return BUILTIN.phones;
+// ===== dataset handling =====
+const STORAGE_KEY = 'demoDataset';
+function randInt(min,max){ return Math.floor(min + Math.random()*(max-min+1)); }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function uid(pref='id'){ return pref + '-' + Math.random().toString(36).slice(2,9); }
+
+// small lists
+const firstNames = ["Alice","Bob","Eve","Sam","Maya","John","Grace","Peter","Lina","Omar","Asha","Zuri","Ken"];
+const phoneModels = ["Aurora X1","Sienna P9","Proto Z","Nova One","Terra EV","Vector S","Echo M"];
+const osNames = ["Android 12","Android 14","iOS 17","iOS 16"];
+const cities = [{label:'Nairobi, KE',lat:-1.2921,lon:36.8219},{label:'Mombasa, KE',lat:-4.0435,lon:39.6682},{label:'Kisumu, KE',lat:-0.0917,lon:34.7680},{label:'Nakuru, KE',lat:-0.3031,lon:36.0800},{label:'London, UK',lat:51.5074,lon:-0.1278}];
+
+function makeIMEI(){ let s=''; for(let i=0;i<15;i++) s+=Math.floor(Math.random()*10); return s; }
+
+function generatePhones(n=1500){
+  const phones=[];
+  for(let i=0;i<n;i++){
+    const city = pick(cities);
+    const owner = pick(firstNames) + ' ' + (Math.random()>0.5 ? 'Fox' : 'Mwangi');
+    phones.push({
+      id: uid('phone'),
+      name: owner + "'s Phone",
+      model: pick(phoneModels),
+      os: pick(osNames),
+      imei: makeIMEI(),
+      status: Math.random()>0.15 ? "ONLINE" : "SLEEP",
+      battery: randInt(4,99),
+      charging: Math.random()>0.75,
+      network: pick(['Safarinet','MobiPlus','3-carrier','CorpNet','TestNet']),
+      rssi: -30 - randInt(10,80),
+      lastSeen: new Date(Date.now()-randInt(0,1000*60*60*48)).toISOString().slice(0,16).replace('T',' '),
+      location: {lat: +(city.lat + (Math.random()-0.5)/10).toFixed(6), lon: +(city.lon + (Math.random()-0.5)/10).toFixed(6), label: city.label},
+      installed: ["ChatNow","MapsPro","BankVault","CamSecure","Photos","Mail","SocialX","Notes","DevTools","Music"].slice(0, randInt(4,10)),
+      messages: [{from:pick(firstNames),time:'2025-11-05 12:34',text:'Demo message'}],
+      calls: [],
+      files: [{name:'demo.txt',size:'3KB'}],
+      photos: []
+    });
+  }
+  return phones;
 }
 
-function renderCounts(){ const all = getPhones(); document.getElementById('counts').textContent = `Phones available: ${all.length}`; }
-function renderList(query=''){
-  const grid = document.getElementById('phonesGrid'); grid.innerHTML='';
-  const list = getPhones().filter(p=>{
-    if(!query) return true;
-    const q = query.toLowerCase();
-    return (p.name||'').toLowerCase().includes(q) || (p.model||'').toLowerCase().includes(q) || (p.imei||'').toLowerCase().includes(q) || (p.location && p.location.label && p.location.label.toLowerCase().includes(q));
+function saveDataset(dataset){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(dataset)); }catch(e){ console.warn('save failed', e); }
+}
+
+function loadDataset(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+}
+
+function ensureDataset(){
+  let ds = loadDataset();
+  if(ds && ds.phones && ds.phones.length > 300) return ds;
+  // generate default dataset (phones only for this page)
+  const phones = generatePhones(1200);
+  ds = { meta:{generatedAt: new Date().toISOString(), note: 'Demo dataset (fictional)'}, phones };
+  saveDataset(ds);
+  return ds;
+}
+
+// ===== rendering list =====
+const phonesGrid = document.getElementById('phonesGrid');
+let DATA = ensureDataset();
+function renderList(q=''){
+  phonesGrid.innerHTML = '';
+  const list = (DATA.phones||[]).filter(p=>{
+    if(!q) return true;
+    const qq = q.toLowerCase();
+    return (p.name||'').toLowerCase().includes(qq) || (p.model||'').toLowerCase().includes(qq) || (p.imei||'').toLowerCase().includes(qq) || (p.location && p.location.label && p.location.label.toLowerCase().includes(qq));
   });
-  list.slice(0,400).forEach(p=>{
-    const el = document.createElement('article'); el.className='card';
-    el.innerHTML = `<div class="row"><div class="icon">📱</div>
-      <div><div style="font-weight:800">${escape(p.name)}</div><div class="small">${escape(p.model)} · ${escape(p.os)}</div><div class="small">📍 ${escape(p.location.label)}</div></div>
-      <div><div class="badge">${escape(p.status)}</div></div></div>`;
+  document.getElementById('counts').textContent = `Phones: ${list.length}`;
+  const max = Math.min(list.length, 800); // render limit for performance
+  for(let i=0;i<max;i++){
+    const p = list[i];
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `<div class="icon">📱</div><div style="flex:1"><div style="font-weight:800">${escapeHtml(p.name)}</div><div class="small">${escapeHtml(p.model)} · ${escapeHtml(p.os)}</div><div class="small">📍 ${escapeHtml(p.location.label)}</div></div><div><div class="badge">${escapeHtml(p.status)}</div></div>`;
     el.addEventListener('click', ()=>openPhone(p));
-    grid.appendChild(el);
-  });
-  if(list.length === 0) grid.innerHTML = '<div class="small">No matches</div>';
+    phonesGrid.appendChild(el);
+  }
+  if(list.length > max){
+    const more = document.createElement('div'); more.className='card small'; more.textContent = `Showing ${max} of ${list.length}. Search or use filters to narrow results.`;
+    phonesGrid.appendChild(more);
+  }
 }
 
+function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ===== modal / phone view =====
+const modal = document.getElementById('modal');
 function openPhone(phone){
-  const modal = document.getElementById('modal'); modal.innerHTML='';
-  const wrapper = document.createElement('div'); wrapper.className='phone-shell';
-  wrapper.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center">
-    <div><strong>${escape(phone.name)}</strong><div class="small">${escape(phone.model)} · ${escape(phone.os)}</div></div>
-    <div style="text-align:right"><div class="small">IMEI</div><div>${escape(phone.imei)}</div></div>
-  </header>
-  <div style="margin-top:10px" class="app-grid" id="appsGrid"></div>
-  <div id="phoneMain"></div>
-  <footer style="margin-top:10px;text-align:center"><button onclick="closeModal()" class="ghost">Close</button></footer>`;
-  modal.appendChild(wrapper);
+  modal.innerHTML = '';
+  const shell = document.createElement('div'); shell.className='shell';
+  shell.innerHTML = `<header><div><strong>${escapeHtml(phone.name)}</strong><div class="small">${escapeHtml(phone.model)} · ${escapeHtml(phone.os)}</div></div><div style="text-align:right"><div class="small">IMEI</div><div>${escapeHtml(phone.imei)}</div></div></header>
+    <div class="app-grid" id="appsGrid"></div>
+    <div class="phone-main">
+      <div class="phone-left">
+        <div style="display:flex;justify-content:space-between;align-items:center"><div><b>Location</b></div><div><button id="traceBtn" class="btn">Trace (sim)</button></div></div>
+        <div class="map-canvas" id="mapCanvas"><img id="worldImg" class="map-image" src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/World_map_-_low_resolution.svg/2048px-World_map_-_low_resolution.svg.png" alt="world map"></div>
+        <div class="globe-controls">
+          <button class="ghost" id="zoomIn">＋ Zoom</button><button class="ghost" id="zoomOut">－ Zoom</button><button class="ghost" id="resetView">Reset</button>
+        </div>
+      </div>
+      <div class="phone-right">
+        <div><b>Network</b>: ${escapeHtml(phone.network)} · RSSI ${phone.rssi}dBm</div>
+        <div style="margin-top:8px"><b>Battery</b>: ${phone.battery}% ${phone.charging? '(charging)' : ''}</div>
+        <div id="phoneInfoLog" class="log">Simulated exploit log and trace output will appear here.</div>
+        <div style="margin-top:12px">
+          <button class="btn" id="openMessages">Open Messages</button>
+          <button class="ghost" id="openFiles">Browse Files</button>
+        </div>
+      </div>
+    </div>
+    <footer style="text-align:center;margin-top:10px"><button class="ghost" id="closeModal">Close</button></footer>`;
+  modal.appendChild(shell);
   modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
 
-  const appList = [
+  // populate apps grid with many apps (visual richness)
+  const apps = [
     {id:'messages',name:'Messages',icon:'💬'},
     {id:'calls',name:'Phone',icon:'📞'},
     {id:'maps',name:'Maps',icon:'🗺️'},
     {id:'browser',name:'Browser',icon:'🌐'},
     {id:'mail',name:'Mail',icon:'✉️'},
-    {id:'bankapp',name:'BankVault',icon:'🏦'},
-    {id:'camera',name:'Camera',icon:'📷'},
-    {id:'files',name:'Files',icon:'📁'},
+    {id:'bank',name:'BankVault',icon:'🏦'},
     {id:'photos',name:'Photos',icon:'🖼️'},
-    {id:'settings',name:'Settings',icon:'⚙️'},
-    {id:'social',name:'Social',icon:'👥'},
+    {id:'files',name:'Files',icon:'📁'},
+    {id:'camera',name:'Camera',icon:'📷'},
+    {id:'social',name:'SocialX',icon:'👥'},
     {id:'notes',name:'Notes',icon:'📝'},
-    {id:'contacts',name:'Contacts',icon:'📇'},
     {id:'music',name:'Music',icon:'🎵'},
     {id:'payments',name:'Payments',icon:'💳'},
-    {id:'devtools',name:'DevTools',icon:'💻'}
+    {id:'dev',name:'DevTools',icon:'💻'}
   ];
-  const appsGrid = wrapper.querySelector('#appsGrid');
-  appList.forEach(a=>{
-    const b = document.createElement('button'); b.className='app-btn'; b.innerHTML = `<span class="app-icon">${a.icon}</span>${a.name}`;
-    b.dataset.app = a.id;
-    b.addEventListener('click', ()=>renderApp(phone, a.id));
+  const appsGrid = shell.querySelector('#appsGrid');
+  apps.forEach(a=>{
+    const b = document.createElement('button'); b.className='app-btn'; b.innerHTML = `<div class="app-icon">${a.icon}</div><div>${a.name}</div>`;
+    b.addEventListener('click', ()=>renderApp(phone,a.id,a.name));
     appsGrid.appendChild(b);
   });
-  wrapper.querySelector('#phoneMain').innerHTML = `<div><p><b>Location</b>: ${phone.location.lat.toFixed(6)}, ${phone.location.lon.toFixed(6)}</p>
-    <div style="height:200px;background:linear-gradient(180deg,#03110a,#091b11);border-radius:8px;position:relative">
-      <div style="width:18px;height:18px;border-radius:50%;background:var(--accent);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px rgba(24,255,98,.6)"></div>
-    </div>
-    <p class="small">Network: ${escape(phone.network)} · RSSI ${phone.rssi}dBm · Battery: ${phone.battery}%</p></div>`;
-  const log = document.createElement('div'); log.className='small'; log.style.marginTop='8px'; log.style.padding='8px'; log.style.border='1px dashed rgba(255,255,255,.03)'; log.style.background='rgba(0,0,0,.2)';
-  wrapper.querySelector('#phoneMain').appendChild(log);
-  fauxExploitLog(log, phone);
+
+  // globe interactive: pan/zoom/rotate simple implementation (image transform)
+  const img = shell.querySelector('#worldImg');
+  let scale = 1, rotate = 0, panX = 0, panY = 0, isDown=false, last={x:0,y:0};
+  img.style.transform = 'translate(-50%,-50%) scale(1) rotate(0deg)';
+  img.style.position = 'absolute'; img.style.left='50%'; img.style.top='50%';
+  img.addEventListener('pointerdown', (e)=>{ isDown=true; last.x=e.clientX; last.y=e.clientY; img.setPointerCapture(e.pointerId); });
+  img.addEventListener('pointermove', (e)=>{ if(!isDown) return; const dx = e.clientX - last.x; const dy = e.clientY - last.y; last.x = e.clientX; last.y = e.clientY; panX += dx; panY += dy; updateTransform(); });
+  img.addEventListener('pointerup', (e)=>{ isDown=false; });
+  function updateTransform(){ img.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale}) rotate(${rotate}deg)`; }
+  shell.querySelector('#zoomIn').addEventListener('click', ()=>{ scale *= 1.18; updateTransform(); });
+  shell.querySelector('#zoomOut').addEventListener('click', ()=>{ scale /= 1.18; updateTransform(); });
+  shell.querySelector('#resetView').addEventListener('click', ()=>{ scale=1; rotate=0; panX=0; panY=0; updateTransform(); });
+
+  // make trace button obvious
+  shell.querySelector('#traceBtn').addEventListener('click', ()=>{
+    const log = shell.querySelector('#phoneInfoLog');
+    log.textContent = 'Triangulating (simulated)…';
+    let step=0;
+    const iv = setInterval(()=>{ step++; log.textContent = `Triangulation progress: ${step*12}%`; if(step>=9){ clearInterval(iv); log.textContent = `Approx location: ${phone.location.lat.toFixed(6)}, ${phone.location.lon.toFixed(6)} (simulated)`; } }, 300);
+  });
+
+  // quick app shortcuts
+  shell.querySelector('#openMessages').addEventListener('click', ()=>renderApp(phone,'messages'));
+  shell.querySelector('#openFiles').addEventListener('click', ()=>renderApp(phone,'files'));
+  shell.querySelector('#closeModal').addEventListener('click', closeModal);
 }
 
-function renderApp(phone, appId){
-  const main = document.getElementById('phoneMain');
+function renderApp(phone, appId, appName){
+  const main = document.querySelector('.phone-right') || document.querySelector('.phone-main');
   if(!main) return;
+  const phoneMain = document.querySelector('.phone-right');
   if(appId === 'messages'){
-    const msgs = (phone.messages||[]).map(m=>`<div style="padding:6px;border-bottom:1px dashed rgba(255,255,255,.03)"><b>${escape(m.from)}</b> <span class="small">${escape(m.time)}</span><div>${escape(m.text)}</div></div>`).join('');
-    main.innerHTML = `<h3>Messages</h3><div>${msgs || '<div class="small">No messages</div>'}</div>`;
-  } else if(appId === 'calls'){
-    const calls = (phone.calls||[]).map(c=>`<div class="small">${escape(c.type)} — ${escape(c.peer)} <span style="float:right">${escape(c.time)}</span></div>`).join('');
-    main.innerHTML = `<h3>Call Log</h3><div>${calls || '<div class="small">No calls</div>'}</div>`;
+    const msgs = (phone.messages||[]).map(m=>`<div style="padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)"><b>${escapeHtml(m.from)}</b><div class="small">${escapeHtml(m.time)}</div><div>${escapeHtml(m.text)}</div></div>`).join('');
+    phoneMain.innerHTML = `<h3>Messages</h3><div>${msgs || '<div class="small">No messages</div>'}</div><div style="margin-top:8px"><button class="btn" onclick="alert('Compose (demo)')">Compose</button></div>`;
   } else if(appId === 'maps'){
-    main.innerHTML = `<h3>Maps</h3><div style="height:240px;background:linear-gradient(180deg,#03110a,#091b11);border-radius:8px;position:relative"><div style="position:absolute;left:60%;top:48%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(24,255,98,.6)"></div></div><p class="small">Simulated location: ${escape(phone.location.label)}</p>`;
-  } else if(appId === 'bankapp'){
-    main.innerHTML = `<h3>BankVault (Demo)</h3><div class="small">Simulated bank app UI — demonstration only.</div><div style="margin-top:8px"><button class="btn" style="background:var(--accent);color:#001" onclick="alert('Demo: show linked accounts (UI-only)')">View Accounts</button></div>`;
-  } else if(appId === 'camera'){
-    main.innerHTML = `<h3>Camera / Photos</h3><div class="small">${(phone.photos||[]).length} photos (simulated)</div>`;
-  } else if(appId === 'browser'){
-    main.innerHTML = `<h3>Browser</h3><div class="small">Enter a username to "lookup" (UI-only demo). Results are simulated.</div>
-      <div style="margin-top:8px"><input id="fakeLookup" placeholder="username" style="padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04)"><button class="btn" style="margin-left:8px" onclick="fakeLookup()">Lookup</button></div><div id="lookupRes" style="margin-top:8px"></div>`;
+    phoneMain.innerHTML = `<h3>Maps</h3><div class="small">Interactive globe is on the left. Use drag & zoom.</div>`;
+  } else if(appId === 'bank'){
+    phoneMain.innerHTML = `<h3>BankVault (Demo)</h3><div class="small">Simulated bank app view. No real accounts accessed.</div><div style="margin-top:8px"><button class="btn" onclick="alert('Simulated account list')">Accounts</button></div>`;
+  } else if(appId === 'files'){
+    phoneMain.innerHTML = `<h3>Files</h3><div class="small">${(phone.files||[]).length} files (simulated)</div>`;
   } else {
-    main.innerHTML = `<h3>${escape(appId)}</h3><div class="small">Demo content for ${escape(appId)}</div>`;
+    phoneMain.innerHTML = `<h3>${appName || appId}</h3><div class="small">Demo screen for ${escapeHtml(appName || appId)}</div>`;
   }
-  window.fakeLookup = function(){
-    const q = document.getElementById('fakeLookup').value || '';
-    const out = document.getElementById('lookupRes');
-    if(!q){ out.innerHTML = '<div class="small">Enter a username</div>'; return; }
-    out.innerHTML = `<div class="small">Lookup result for ${escape(q)} — <b>Account not found (demo)</b></div>`;
-  };
 }
 
-function closeModal(){ const m = document.getElementById('modal'); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); setTimeout(()=>m.innerHTML='',250); }
+function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); setTimeout(()=>modal.innerHTML='',250); }
 
-function fauxExploitLog(el, phone){
-  const steps = [
-    `probe: imei=${phone.imei}...`,
-    'negotiating stub (simulated)...',
-    'exfiltrate: apps list -> ' + (phone.installed||[]).slice(0,3).join(', '),
-    `triangulate: ${phone.location.lat.toFixed(4)}, ${phone.location.lon.toFixed(4)}`,
-    'shadow channel established (simulated)'
-  ];
-  let idx=0; el.textContent = 'simulated log: initializing...';
-  const iv = setInterval(()=>{ if(idx>=steps.length){ clearInterval(iv); el.textContent = 'simulated access complete — UI-only'; return; } el.textContent = steps[idx++]; }, 700);
-}
-
-document.getElementById('refresh').addEventListener('click', ()=>{
-  DATA = loadDataset(); renderCounts(); renderList(document.getElementById('search').value || '');
-});
+// search / reload
 document.getElementById('search').addEventListener('input', (e)=>{ renderList(e.target.value); });
+document.getElementById('reload').addEventListener('click', ()=>{ DATA = ensureDataset(); renderList(document.getElementById('search').value || ''); });
 
-renderCounts(); renderList();
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+// initial render
+renderList();
+
+// ESC to close
+document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeModal(); });
 </script>
 </body>
 </html>
