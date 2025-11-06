@@ -1,46 +1,41 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Settings — Demo</title>
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Settings — Demo</title>
 <style>
-:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+:root{--bg:#050807;--neon:#00ff99;--muted:#9fe7bd}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:18px;max-width:1100px;margin:0 auto}
-.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04)}
-.btn{background:var(--accent);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+#matrix{position:fixed;inset:0;z-index:0}
+header{position:sticky;top:0;padding:12px;background:rgba(0,0,0,.5);z-index:2}
+.wrap{position:relative;z-index:1;max-width:900px;margin:18px auto;padding:12px}
+.card{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid rgba(255,255,255,.04)}
 .small{font-size:13px;color:var(--muted)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
 </style>
 </head>
 <body>
-<header><h1>Demo Settings & Data</h1><div class="small">Manage exported dataset and demo options.</div></header>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<header><h1 style="margin:0">SETTINGS — DEMO</h1></header>
 <div class="wrap">
-  <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Dataset</strong></div><div><a class="btn" href="dashboard.html">← Dashboard</a></div></div>
-    <div style="margin-top:10px" class="small">Export / Import demo dataset (JSON) stored in localStorage.</div>
-    <div style="margin-top:8px;display:flex;gap:8px">
-      <button id="exportBtn" class="btn">Export JSON</button>
-      <input type="file" id="importFile" style="padding:8px;background:transparent;color:var(--txt)">
-      <button id="clearBtn" class="btn" style="background:#ff6b6b">Clear Local Data</button>
-    </div>
-    <div id="msg" style="margin-top:10px" class="small"></div>
-  </section>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Demo Data</strong><div class="small">Export / import the demo dataset used across pages.</div></div><div><button id="export" class="btn">Export JSON</button> <input id="importFile" type="file" style="background:transparent;color:var(--neon)"></div></div>
+    <div style="margin-top:12px" class="small">Reset or clear demo data stored in localStorage.</div>
+    <div style="margin-top:8px"><button id="clear" class="btn">Clear Demo Data</button></div>
+  </div>
 </div>
-
 <script>
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const raw = localStorage.getItem('demoDataset'); if(!raw){ alert('No dataset to export. Generate one from Dashboard.'); return; }
-  const blob = new Blob([raw], {type:'application/json'}); const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='demo_dataset.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  document.getElementById('msg').textContent = 'Export started.';
+const mx=document.getElementById('matrix'), ctx=mx.getContext('2d'); function r(){mx.width=innerWidth;mx.height=innerHeight;} addEventListener('resize',r); r(); (function(){ ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,mx.width,mx.height); ctx.fillStyle='#00ff99'; ctx.font='14px monospace'; ctx.fillText('DEMO SETTINGS',20,30); requestAnimationFrame(arguments.callee); })();
+
+document.getElementById('export').addEventListener('click', ()=>{
+  const data = { demo_students: localStorage.getItem('demo_students'), demo_volumes: localStorage.getItem('demo_volumes'), demoDataset: localStorage.getItem('demoDataset'), demo_jobs: localStorage.getItem('demo_jobs') };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='demo_all_export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 });
-document.getElementById('importFile').addEventListener('change', (e)=>{
-  const f = e.target.files[0]; if(!f) return;
-  const reader = new FileReader(); reader.onload = ()=>{ try{ const js = JSON.parse(reader.result); localStorage.setItem('demoDataset', JSON.stringify(js)); document.getElementById('msg').textContent='Dataset imported successfully.'; }catch(err){ document.getElementById('msg').textContent = 'Invalid JSON.'; } }; reader.readAsText(f);
+document.getElementById('importFile').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ try{ const data=JSON.parse(r.result); if(data.demo_students) localStorage.setItem('demo_students', data.demo_students); if(data.demo_volumes) localStorage.setItem('demo_volumes', data.demo_volumes); if(data.demoDataset) localStorage.setItem('demoDataset', data.demoDataset); if(data.demo_jobs) localStorage.setItem('demo_jobs', data.demo_jobs); alert('Imported demo dataset into localStorage (UI-only)'); }catch(err){ alert('Invalid JSON'); } }; r.readAsText(f);
 });
-document.getElementById('clearBtn').addEventListener('click', ()=>{ if(confirm('Clear demo dataset from localStorage?')){ localStorage.removeItem('demoDataset'); document.getElementById('msg').textContent='Local demo data cleared.'; }});
+document.getElementById('clear').addEventListener('click', ()=>{ if(confirm('Clear all demo data from localStorage?')){ ['demo_students','demo_volumes','demoDataset','demo_jobs'].forEach(k=>localStorage.removeItem(k)); alert('Demo data cleared (localStorage).'); }});
 </script>
 </body>
 </html>
