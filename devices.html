@@ -1,44 +1,83 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Online Devices — Demo</title>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Devices — Enhanced Demo</title>
 <style>
 :root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:18px;max-width:1100px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.card{padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
+#matrix{position:fixed;inset:0;z-index:0}
+header{position:sticky;top:0;background:rgba(0,0,0,.5);padding:12px;z-index:2}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:18px auto;padding:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.card{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid rgba(255,255,255,.04)}
 .small{font-size:13px;color:var(--muted)}
-.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:60;padding:12px}
+.modal.show{display:flex}
+.sheet{width:94vw;max-width:1000px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.map{height:320px;border-radius:8px;background:#04120b;border:1px dashed rgba(255,255,255,.04)}
 </style>
 </head>
 <body>
-<header><h1>Online Devices — Demo</h1><div class="small">Combined view of all endpoints (phones, cars, IoT) in the demo dataset.</div></header>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<header><h1 style="margin:0">DEVICES — DEMO</h1></header>
 <div class="wrap">
   <div style="display:flex;justify-content:space-between;align-items:center">
-    <div class="small" id="counts">Devices: 0</div>
-    <div><a class="btn" href="dashboard.html">← Dashboard</a></div>
+    <div class="small">Discovered devices: phones, cars, IOT — many examples generated</div>
+    <div><button id="gen" class="btn">Generate 500 devices</button></div>
   </div>
-
-  <div id="grid" class="grid" style="margin-top:12px"></div>
+  <div class="grid" id="grid" style="margin-top:12px"></div>
 </div>
+<div id="modal" class="modal" aria-hidden="true"></div>
 
 <script>
-function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
-const DATA = loadDataset();
-const grid = document.getElementById('grid');
-if(!DATA){ grid.innerHTML = '<div class="card small">No dataset found. Generate one on Dashboard.</div>'; document.getElementById('counts').textContent='Devices: 0'; }
-else{
-  const items = [];
-  (DATA.phones||[]).slice(0,400).forEach(p=> items.push({type:'Phone',id:p.id,name:p.name,summary:p.model + ' · ' + p.os,refId:p.id}));
-  (DATA.cars||[]).slice(0,400).forEach(c=> items.push({type:'Car',id:c.id,name:c.name,summary:c.model + ' · ' + c.plate,refId:c.id}));
-  items.push({type:'CCTV',id:'cam-1',name:'CCTV-Front',summary:'RTSP',refId:null});
-  document.getElementById('counts').textContent = 'Devices: ' + items.length;
-  items.forEach(it=>{ const el=document.createElement('article'); el.className='card'; el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${it.name}</strong><div class="small">${it.type} · ${it.summary}</div></div><div><button class="btn" data-id="${it.refId}" data-type="${it.type}">Open</button></div></div>`; grid.appendChild(el); });
-  grid.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', e=>{ const type = b.dataset.type, id = b.dataset.id; if(type === 'Phone'){ sessionStorage.setItem('demo_focus', id); location.href='phones.html'; } else if(type === 'Car'){ sessionStorage.setItem('demo_focus', id); location.href='cars.html'; } else alert('Opening ' + type + ' (simulated)'); }));
+// matrix
+const matrix=document.getElementById('matrix'), ctx=matrix.getContext('2d'); let W,H,cols,drops; function rs(){W=matrix.width=innerWidth;H=matrix.height=innerHeight;cols=Math.ceil(W/14);drops=Array(cols).fill(0);} addEventListener('resize',rs); rs();
+const glyphs='01ABCxyz@#';
+(function m(){ ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#00ff99'; ctx.font='14px monospace'; for(let i=0;i<cols;i++){ const ch=glyphs[Math.floor(Math.random()*glyphs.length)]; ctx.fillText(ch,i*14,drops[i]*14); if(drops[i]*14>H && Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(m); })();
+
+// generate devices
+function uid(p='id'){return p+'-'+Math.random().toString(36).slice(2,9);}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+const types=['Phone','Car','IoT','CCTV','Router'];
+let devices = JSON.parse(localStorage.getItem('demo_devices')||'null');
+if(!devices){ devices = []; for(let i=0;i<300;i++){ const t=pick(types); devices.push({id:uid('dev'), name: t+'-'+(100+i), type:t, ip:`10.0.${rand(1,5)}.${rand(2,254)}`, mac:`DE:AD:BE:${('0'+rand(0,99)).slice(-2)}:${('0'+rand(0,99)).slice(-2)}`}); } localStorage.setItem('demo_devices', JSON.stringify(devices)); }
+
+const grid=document.getElementById('grid');
+function render(){
+  grid.innerHTML=''; devices.slice(0,800).forEach(d=>{ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:800">${d.name}</div><div class="small">${d.type} · ${d.ip} · ${d.mac}</div></div><div><button class="btn open" data-id="${d.id}">Open</button></div></div>`; grid.appendChild(el); });
+}
+render();
+
+document.getElementById('gen').addEventListener('click', ()=>{ for(let i=0;i<500;i++){ const t=pick(types); devices.push({id:uid('dev'), name:t+'-'+(1000+i), type:t, ip:`10.1.${rand(1,255)}.${rand(2,254)}`, mac:`BA:AD:F0:${('0'+rand(0,99)).slice(-2)}:${('0'+rand(0,99)).slice(-2)}`}); } localStorage.setItem('demo_devices', JSON.stringify(devices)); render(); alert('Generated 500 devices (demo).'); });
+
+document.addEventListener('click', e=>{ if(e.target.matches('.open')) openDevice(e.target.dataset.id); });
+
+function openDevice(id){
+  const d = devices.find(x=>x.id===id); if(!d) return;
+  const modal = document.getElementById('modal'); modal.innerHTML='';
+  const sh=document.createElement('div'); sh.className='sheet';
+  sh.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${d.name}</strong><div class="small">${d.type} · ${d.ip}</div></div><div><button id="close" class="ghost">Close</button></div></header>
+    <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-weight:800">Details</div>
+        <div class="small" style="margin-top:8px">MAC: ${d.mac}</div>
+        <div style="margin-top:8px" class="small">Simulated actions: view logs, connect (UI-only)</div>
+        <div style="margin-top:10px"><button id="logs" class="btn">Show Logs</button> <button id="connect" class="ghost">Connect (sim)</button></div>
+      </div>
+      <div style="width:320px">
+        <div style="font-weight:800">Location (sim)</div>
+        <div class="map small" id="mapBox">Map preview (sim)</div>
+        <div style="margin-top:8px"><button id="trace" class="btn">Trace (sim)</button></div>
+      </div>
+    </div>`;
+  modal.appendChild(sh); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+  sh.querySelector('#close').addEventListener('click', ()=>{ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); setTimeout(()=>modal.innerHTML='',250); });
+  sh.querySelector('#logs').addEventListener('click', ()=>{ alert('Showing logs (simulated) for '+d.name); });
+  sh.querySelector('#connect').addEventListener('click', ()=>{ alert('Connect simulated — UI-only'); });
+  sh.querySelector('#trace').addEventListener('click', ()=>{ alert('Triangulation simulated for '+d.name); });
 }
 </script>
 </body>
