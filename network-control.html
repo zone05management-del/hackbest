@@ -1,53 +1,40 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Street & Networks — Demo Control</title>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Network Control — Enhanced Demo</title>
 <style>
-:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
+:root{--bg:#050807;--neon:#00ff99;--muted:#9fe7bd}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:18px;max-width:1100px;margin:0 auto}
-.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04)}
-.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.control{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--txt);cursor:pointer}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+#matrix{position:fixed;inset:0;z-index:0}
+header{position:sticky;top:0;padding:12px;background:rgba(0,0,0,.5);z-index:2}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:18px auto;padding:12px}
+.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid rgba(255,255,255,.04)}
+.controls{display:flex;gap:8px;align-items:center}
+.map{height:360px;border-radius:8px;background:#04120b;border:1px dashed rgba(255,255,255,.04)}
+.btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
 .small{font-size:13px;color:var(--muted)}
-.toggle.on{background:var(--accent);color:#001}
-.map{height:280px;background:#03110a;border-radius:8px;margin-top:8px}
-</style>
-</head>
-<body>
-<header><h1>Street & Networks Control — Demo</h1><div class="small">CCTV, lights, mesh toggles — simulation only.</div></header>
+</style></head><body>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<header><h1 style="margin:0">NETWORK CONTROL — DEMO</h1></header>
 <div class="wrap">
-  <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Controls</strong></div><div><a class="control" href="dashboard.html">← Dashboard</a></div></div>
-
-    <div class="row" style="margin-top:12px">
-      <button class="control toggle" data-id="cctv-1">CCTV - Market</button>
-      <button class="control toggle" data-id="lights-1">Lights - Main St</button>
-      <button class="control toggle" data-id="mesh-1">Mesh Relay - Block A</button>
-      <button class="control" id="runAll">Run All (sim)</button>
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>City Grid</strong><div class="small">Toggle cameras, lights, and mesh nodes (simulated)</div></div><div><button id="runAll" class="btn">Enable All (sim)</button></div></div>
+    <div class="controls" style="margin-top:12px;flex-wrap:wrap">
+      <button class="btn toggle" data-id="cctv-1">CCTV - Market</button>
+      <button class="btn toggle" data-id="lights-1">Lights - Main St</button>
+      <button class="btn toggle" data-id="mesh-1">Mesh Relay - Block A</button>
+      <button class="btn toggle" data-id="cam-2">CCTV - Station</button>
     </div>
-
-    <div class="map" id="map">[Simulated city map — UI only]</div>
-
-    <div style="margin-top:8px" class="small">Actions are local UI-only. No connection to city infrastructure.</div>
-  </section>
+    <div style="margin-top:12px"><div id="map" class="map">[Simulated city map — UI-only]</div></div>
+    <div style="margin-top:8px" class="small">Actions affect only the demo UI (local).</div>
+  </div>
 </div>
-
 <script>
-document.querySelectorAll('.toggle').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    b.classList.toggle('on');
-    const state = b.classList.contains('on') ? 'ENABLED' : 'DISABLED';
-    b.textContent = b.textContent.split(' ')[0] + ' — ' + state;
-  });
+const mx=document.getElementById('matrix'), c=mx.getContext('2d'); let W,H,cols,drops; function r(){W=mx.width=innerWidth;H=mx.height=innerHeight;cols=Math.ceil(W/14);drops=Array(cols).fill(0);} addEventListener('resize',r); r();
+const glyphs='01ABCXYZ'; (function m(){ c.fillStyle='rgba(0,0,0,0.08)'; c.fillRect(0,0,W,H); c.fillStyle='#00ff99'; c.font='14px monospace'; for(let i=0;i<cols;i++){ const ch=glyphs[Math.floor(Math.random()*glyphs.length)]; c.fillText(ch,i*14,drops[i]*14); if(drops[i]*14>H && Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(m); })();
+
+document.querySelectorAll('.toggle').forEach(btn=>{
+  btn.addEventListener('click', ()=>{ btn.classList.toggle('active'); if(btn.classList.contains('active')){ btn.style.background='#18ff62'; alert(btn.textContent + ' ENABLED (demo)'); } else { btn.style.background=''; alert(btn.textContent + ' DISABLED (demo)'); } });
 });
-document.getElementById('runAll').addEventListener('click', ()=>{
-  document.querySelectorAll('.toggle').forEach(b=>{ b.classList.add('on'); b.textContent = b.textContent.split(' ')[0] + ' — ENABLED'; });
-  alert('All systems toggled (simulated).');
-});
+document.getElementById('runAll').addEventListener('click', ()=>{ document.querySelectorAll('.toggle').forEach(b=>{ b.classList.add('active'); b.style.background='#18ff62'; }); alert('All systems enabled (simulated)'); });
 </script>
-</body>
-</html>
+</body></html>
