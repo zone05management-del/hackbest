@@ -35,7 +35,7 @@
 
     .row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
     .btn{cursor:pointer;border:none;padding:12px 16px;border-radius:12px;color:#06140a;background:var(--accent);font-weight:800;letter-spacing:.06em;box-shadow:0 10px 22px rgba(24,255,98,.25)}
-    .ghost{background:transparent;color:var(--txt);border:1px solid rgba(24,255,98,.35)}
+    .ghost{background:transparent;color:var(--txt);border:1px solid rgba(24,255,98,.35);padding:10px;border-radius:10px}
 
     .status{min-height:22px;font-size:12px;color:#a9eec6}
     .status.err{color:var(--err)}
@@ -56,6 +56,15 @@
     /* Error shake */
     .shake{animation:shake .4s ease-in-out}
     @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+
+    /* Floating action bar (bottom-centered horizontal) */
+    .fab-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:120;display:flex;gap:12px;align-items:center}
+    .fab{width:56px;height:56px;border-radius:28px;display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.45);border:3px solid rgba(0,0,0,.12)}
+    .fab.wa{background:#25D366;color:#fff}
+    .fab.share{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#001}
+    .fab svg{width:26px;height:26px}
+    .fab-label{font-size:12px;color:var(--muted);text-align:center;margin-top:6px}
+    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
   </style>
 </head>
 <body class="grid">
@@ -95,6 +104,21 @@
       </div>
     </section>
   </div>
+
+  <!-- Floating action bar: centered horizontally at bottom (WhatsApp + Share) -->
+  <div class="fab-bar" aria-hidden="false">
+    <button id="waFab" class="fab wa" title="Request access via WhatsApp" aria-label="Request access via WhatsApp">
+      <!-- WhatsApp SVG -->
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 11.5c0 4.97-4.03 9-9 9a8.95 8.95 0 0 1-4-0.86L3 21l1.36-4.9A8.95 8.95 0 0 1 3 11.5C3 6.53 7.03 2.5 12 2.5S21 6.53 21 11.5z" stroke="white" stroke-width="0.6" /><path d="M17.2 14.2c-0.3 0.7-1.6 1.6-2.2 1.7-0.6 0.1-1.1 0.5-2.4-0.4-1.3-0.9-2.2-2.1-2.5-2.7-0.3-0.7 0.1-1 0.4-1.3 0.3-0.3 0.6-0.7 0.9-1 0.3-0.3 0.4-0.6 0.6-1 0.1-0.3 0-0.6-0.2-0.8-0.3-0.2-0.7-0.6-1.2-0.6-0.5 0-1.1 0.1-1.6 0.8-0.5 0.7-1.9 2.1-1.9 4.9 0 2.8 2.1 5.4 2.4 5.8 0.3 0.4 4 6.3 9.5 0.9 0 0 1.2-1 1.4-2.1 0.2-1.1 0.2-2-0.6-2.8z" fill="white"/></svg>
+    </button>
+
+    <button id="shareFab" class="fab share" title="Share this site" aria-label="Share this site">
+      <!-- Share SVG -->
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" stroke="#001" stroke-width="1.2"/><path d="M16 6l-4-4-4 4" stroke="#001" stroke-width="1.2"/><path d="M12 2v14" stroke="#001" stroke-width="1.2"/></svg>
+    </button>
+  </div>
+
+  <span id="waTooltip" class="sr-only" role="status">WhatsApp: request access</span>
 
   <script>
     // ===== Matrix Rain (background eye-candy) =====
@@ -175,7 +199,81 @@
     form.addEventListener('submit', authenticate);
     // Enter key convenience on inputs
     [user,pass].forEach(i=>i.addEventListener('keydown', e=>{ if(e.key==='Enter'){ authenticate(e); }}));
+
+    // ===== WhatsApp quick-request and Share actions =====
+    // Replace with your WhatsApp number in international format (no '+' sign). Example: "254712345678"
+    let WA_NUMBER = ''; // you can set this at runtime via window.__ACCESS_NODE.setWhatsAppNumber()
+
+    const waFab = document.getElementById('waFab');
+    const shareFab = document.getElementById('shareFab');
+
+    function generateUniqueId(){ return 'REQ-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,6).toUpperCase(); }
+
+    function buildWhatsAppMessage(userProvidedName){
+      const id = generateUniqueId();
+      const ts = new Date().toISOString();
+      const userName = (userProvidedName && userProvidedName.trim()) || user.value.trim() || 'Guest';
+      const site = location.href;
+      return `Hello, I am requesting the passphrase to open the site.\n\nOperator: ${userName}\nRequestId: ${id}\nTime: ${ts}\nSite: ${site}\n\nPlease send the access passphrase. (Demo request)`;
+    }
+
+    function openWhatsApp(number, prefilledMessage){
+      const encoded = encodeURIComponent(prefilledMessage);
+      const url = `https://wa.me/${number}?text=${encoded}`;
+      window.open(url, '_blank');
+      // store request locally so dashboard can show it (UI-only)
+      try{
+        const reqs = JSON.parse(localStorage.getItem('access_requests')||'[]');
+        reqs.unshift({id: generateUniqueId(), to:number, message: prefilledMessage, timestamp: new Date().toISOString()});
+        localStorage.setItem('access_requests', JSON.stringify(reqs));
+      }catch(e){}
+    }
+
+    waFab.addEventListener('click', ()=>{
+      const msg = buildWhatsAppMessage();
+      if(WA_NUMBER && WA_NUMBER.trim().length > 2){
+        openWhatsApp(WA_NUMBER.trim(), msg);
+        return;
+      }
+      const num = prompt('Enter WhatsApp number (international, e.g. 254706648713) to send the demo request (or Cancel to copy the message):');
+      if(num && num.trim()){
+        openWhatsApp(num.trim(), msg);
+      } else {
+        if(navigator.clipboard){
+          navigator.clipboard.writeText(msg).then(()=> alert('Request message copied to clipboard. Paste it into WhatsApp to send.'), ()=> alert('Could not copy automatically — please copy the message manually:\n\n' + msg));
+        } else {
+          alert('Copy this message and send it via WhatsApp:\n\n' + msg);
+        }
+      }
+    });
+
+    // Share button: Web Share API with clipboard fallback
+    shareFab.addEventListener('click', async ()=>{
+      const shareText = `Check out ACCESS NODE — an interactive demo "Hacker Control Center". Explore the UI and mock data here: ${location.href}\n\nIt's a neon-themed demo for acting and presentations — join in!`;
+      if(navigator.share){
+        try{
+          await navigator.share({ title: 'ACCESS NODE — Demo', text: shareText, url: location.href });
+          return;
+        }catch(err){
+          // fallback to clipboard below
+        }
+      }
+      if(navigator.clipboard){
+        navigator.clipboard.writeText(shareText).then(()=> alert('Share message copied to clipboard. Paste to share.'), ()=> alert('Copy failed — please manually copy: ' + location.href));
+      } else {
+        alert('Your browser does not support automatic sharing. Please copy the link: ' + location.href);
+      }
+    });
+
+    // small runtime helper to set WA number during a demo
+    window.__ACCESS_NODE = {
+      setWhatsAppNumber: function(number){
+        WA_NUMBER = String(number || '').trim();
+        alert('WhatsApp number set for this session.');
+      },
+      // helper to read stored access requests (dashboard can read localStorage directly too)
+      readRequests: function(){ try{ return JSON.parse(localStorage.getItem('access_requests')||'[]'); }catch(e){ return []; } }
+    };
   </script>
 </body>
-
 </html>
