@@ -1,55 +1,129 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>File Access — Demo</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Files — Enhanced Demo</title>
 <style>
-:root{--bg:#050807;--accent:#18ff62;--txt:#c9ffe1;--muted:#9fe7bd}
+:root{--bg:#050807;--neon:#00ff99;--muted:#9fe7bd}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:18px;max-width:1100px;margin:0 auto}
-.panel{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.04)}
-.list{margin-top:10px}
-.file{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center}
-.btn{background:var(--accent);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
-.small{font-size:13px;color:var(--muted)}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
+#matrix{position:fixed;inset:0;z-index:0}
+header{position:sticky;top:0;padding:12px;background:rgba(0,0,0,.45);z-index:2;border-bottom:1px solid rgba(0,255,153,.06)}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:18px auto;padding:12px}
+.controls{display:flex;gap:8px;align-items:center}
+.search{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--neon);min-width:220px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.volume{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);border:1px solid rgba(255,255,255,.04)}
+.file{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)}
+.preview{height:200px;border-radius:8px;background:#081815;border:1px dashed rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:60;padding:12px}
 .modal.show{display:flex}
+.sheet{width:94vw;max-width:980px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.small{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
-<header><h1>File Access — Demo File Browser</h1><div class="small">Simulated explorer for demo volumes and files.</div></header>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<header>
+  <div><h1 style="margin:0">FILES — DEMO</h1><div class="small">Simulated volumes, file previews, and many generated examples.</div></div>
+  <div class="controls">
+    <input id="search" class="search" placeholder="Search filename or type..." />
+    <button id="gen" class="btn">Generate Volumes</button>
+    <a href="dashboard.html" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,.04);color:var(--neon)">← Dashboard</a>
+  </div>
+</header>
+
 <div class="wrap">
-  <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div><strong>Volumes</strong></div>
-      <div><a href="dashboard.html" class="small" style="color:var(--txt);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:6px;border-radius:8px">← Dashboard</a></div>
-    </div>
-    <div id="volumes" class="list"></div>
-  </section>
+  <div class="grid" id="volumesGrid"></div>
 </div>
 
 <div id="modal" class="modal" aria-hidden="true"></div>
 
 <script>
-function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
-const DATA = loadDataset();
-const volumes = [];
-if(DATA){
-  volumes.push({id:'vol-phones',label:'Phones Backup',files:[{name:'phones_dump_1.json',size:'4.2MB'},{name:'contacts.vcf',size:'128KB'}]});
-  volumes.push({id:'vol-cars',label:'Cars Telemetry',files:[{name:'cars_log.csv',size:'1.5MB'}]});
-  volumes.push({id:'vol-banks',label:'Bank Archives',files:[{name:'ledger-demo.zip',size:'9.4MB'}]});
-} else {
-  volumes.push({id:'vol-demo',label:'Demo Volume',files:[{name:'readme.txt',size:'2KB'},{name:'sample.jpg',size:'1.2MB'}]});
+// Matrix
+const m = document.getElementById('matrix'), mc = m.getContext('2d');
+let W,H,cols,drops; function rsz(){W=m.width=innerWidth;H=m.height=innerHeight;cols=Math.ceil(W/14);drops=Array(cols).fill(0);} addEventListener('resize',rsz); rsz();
+const glyphs='01ABCXYZ$#@';
+(function f(){ mc.fillStyle='rgba(0,0,0,0.08)'; mc.fillRect(0,0,W,H); mc.fillStyle='#00ff99'; mc.font='14px monospace'; for(let i=0;i<cols;i++){ const ch=glyphs[Math.floor(Math.random()*glyphs.length)]; mc.fillText(ch,i*14,drops[i]*14); if(drops[i]*14>H&&Math.random()>0.975) drops[i]=0; drops[i]++; } requestAnimationFrame(f); })();
+
+// Demo volumes/files generator
+function uid(p='id'){return p+'-'+Math.random().toString(36).slice(2,9);}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+const extSamples = ['txt','log','csv','json','jpg','png','mp4','pdf','docx'];
+function genVolumes(nVol=8){
+  const vols=[];
+  for(let v=0;v<nVol;v++){
+    const files=[];
+    const count = rand(8,40);
+    for(let f=0; f<count; f++){
+      const ext = extSamples[Math.floor(Math.random()*extSamples.length)];
+      files.push({id:uid('f'), name:`${ext.toUpperCase()}_file_${f+1}.${ext}`, size: (Math.random()*10).toFixed(2)+'MB', type: ext});
+    }
+    vols.push({id:uid('vol'), label:`Volume-${v+1}`, files});
+  }
+  return vols;
 }
-const container = document.getElementById('volumes');
-function render(){ container.innerHTML=''; volumes.forEach(v=>{ const volEl=document.createElement('div'); volEl.className='file'; volEl.innerHTML = `<div><strong>${v.label}</strong><div class="small">${v.files.length} files</div></div><div><button class="btn" data-id="${v.id}">Browse</button></div>`; container.appendChild(volEl); }); container.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>openVolume(b.dataset.id))); }
+
+let volumes = JSON.parse(localStorage.getItem('demo_volumes')||'null');
+if(!volumes){ volumes = genVolumes(12); localStorage.setItem('demo_volumes', JSON.stringify(volumes)); }
+
+const grid = document.getElementById('volumesGrid');
+function render(q=''){
+  grid.innerHTML='';
+  volumes.forEach(vol=>{
+    const card = document.createElement('div'); card.className='volume';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${vol.label}</strong><div class="small">${vol.files.length} files</div></div><div><button class="btn openVol" data-id="${vol.id}">Browse</button></div></div>`;
+    grid.appendChild(card);
+  });
+}
 render();
-function openVolume(id){ const v = volumes.find(x=>x.id===id); if(!v) return; const modal = document.getElementById('modal'); modal.innerHTML=''; const box=document.createElement('div'); box.style.width='720px'; box.style.maxWidth='92vw'; box.style.background='linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01))'; box.style.padding='12px'; box.style.borderRadius='12px'; box.style.border='1px solid rgba(255,255,255,.04)'; box.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${v.label}</strong><div class="small">${v.files.length} files</div></div><div><button id="close" class="btn">Close</button></div></header><div style="margin-top:8px" id="filesList"></div>`; modal.appendChild(box); modal.classList.add('show'); modal.setAttribute('aria-hidden','false'); const filesList = box.querySelector('#filesList'); v.files.forEach(f=>{ const el=document.createElement('div'); el.className='file'; el.innerHTML = `<div>${f.name}<div class="small">${f.size}</div></div><div><button class="btn" data-file="${f.name}">Preview</button></div>`; filesList.appendChild(el); }); filesList.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>previewFile(b.dataset.file))); box.querySelector('#close').addEventListener('click', closeModal); }
-function previewFile(fname){ const modal = document.getElementById('modal'); const preview=document.createElement('div'); preview.style.marginTop='8px'; preview.style.padding='8px'; preview.style.border='1px dashed rgba(255,255,255,.03)'; preview.style.background='rgba(0,0,0,.2)'; preview.innerHTML = `<div><strong>Preview: ${fname}</strong><div class="small">This is a simulated preview of ${fname}. No file was read from disk (UI-only).</div></div>`; modal.querySelector('#filesList').insertBefore(preview, modal.querySelector('#filesList').firstChild); }
-function closeModal(){ const m=document.getElementById('modal'); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); setTimeout(()=>m.innerHTML='',250); }
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+// open volume
+document.addEventListener('click', e=>{
+  if(e.target.matches('.openVol')){
+    const id=e.target.dataset.id; const vol=volumes.find(v=>v.id===id);
+    if(!vol) return;
+    const modal=document.getElementById('modal'); modal.innerHTML='';
+    const s=document.createElement('div'); s.className='sheet';
+    s.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${vol.label}</strong><div class="small">${vol.files.length} files (demo)</div></div><div><button id="close" class="ghost">Close</button></div></header>
+      <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:320px">
+          <div id="filesList">${vol.files.map(f=>`<div class="file"><div>${f.name}<div class="small">${f.size}</div></div><div><button class="btn preview" data-id="${f.id}" data-name="${f.name}">Preview</button></div></div>`).join('')}</div>
+        </div>
+        <div style="width:320px">
+          <div style="font-weight:800">Preview</div>
+          <div class="preview" id="previewBox">Select a file to preview (simulated)</div>
+          <div style="margin-top:8px;display:flex;gap:8px"><button id="downloadAll" class="btn">Download All (zip) (sim)</button><button id="exportVol" class="ghost">Export JSON</button></div>
+        </div>
+      </div>`;
+    modal.appendChild(s); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+    s.querySelector('#close').addEventListener('click', ()=>{ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); setTimeout(()=>modal.innerHTML='',250); });
+    s.querySelectorAll('.preview').forEach(btn=>btn.addEventListener('click', (evt)=>{
+      const name = evt.target.dataset.name; const box = s.querySelector('#previewBox');
+      // simple fake preview content
+      if(name.endsWith('.jpg')||name.endsWith('.png')){
+        box.innerHTML = `<img src="https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60" style="width:100%;height:100%;object-fit:cover;border-radius:6px">`;
+      } else if(name.endsWith('.mp4')){
+        box.innerHTML = `<video controls style="width:100%;height:100%;border-radius:6px"><source src="" type="video/mp4">Demo video (no source)</video>`;
+      } else {
+        box.innerHTML = `<pre style="white-space:pre-wrap;color:var(--neon);">Demo preview of ${name}\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. (UI-only)</pre>`;
+      }
+    }));
+    s.querySelector('#downloadAll').addEventListener('click', ()=>alert('Download all (simulated, UI-only)'));
+    s.querySelector('#exportVol').addEventListener('click', ()=>{
+      const blob=new Blob([JSON.stringify(vol, null, 2)], {type:'application/json'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=vol.label+'_demo.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+  }
+});
+
+// regenerate
+document.getElementById('gen').addEventListener('click', ()=>{
+  volumes = genVolumes(18); localStorage.setItem('demo_volumes', JSON.stringify(volumes)); render();
+  alert('Generated demo volumes (stored locally).');
+});
+
 </script>
 </body>
 </html>
