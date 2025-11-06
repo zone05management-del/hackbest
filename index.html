@@ -157,7 +157,7 @@
         if(prog>=100){
           clearInterval(steps);
           // Password check (hardcoded)
-          if(p === 'rodgerfox'){
+          if(p === 'rodgerfox@254'){
             statusEl.textContent = 'Access granted'; statusEl.className='status ok'; sOk.play();
             // Save username for later pages
             try{ sessionStorage.setItem('hx_user', u); }catch(e){}
@@ -177,4 +177,5 @@
     [user,pass].forEach(i=>i.addEventListener('keydown', e=>{ if(e.key==='Enter'){ authenticate(e); }}));
   </script>
 </body>
+
 </html>
