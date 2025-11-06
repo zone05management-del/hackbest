@@ -1,65 +1,181 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>School Admin — Demo</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>School Admin — Enhanced Demo</title>
 <style>
-:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd}
+:root{--bg:#000;--neon:#00ff99;--muted:#9fe7bd;--card:rgba(255,255,255,.02)}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;background:var(--bg);color:var(--neon);font:15px/1.6 ui-monospace,monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:18px;max-width:1100px;margin:0 auto}
-.panel{padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(0,255,153,.02),rgba(0,0,0,.5));border:1px solid rgba(0,255,153,.06)}
-.small{font-size:13px;color:var(--muted)}
-.list{margin-top:12px}
-.student{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03)}
+#matrix{position:fixed;inset:0;z-index:0}
+header{position:sticky;top:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);padding:14px;z-index:2;border-bottom:1px solid rgba(0,255,153,.06);display:flex;justify-content:space-between;align-items:center}
+.wrap{position:relative;z-index:1;max-width:1200px;margin:18px auto;padding:12px}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search{padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--neon)}
 .btn{background:var(--neon);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
-.notice{margin-top:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03)}
+.card{padding:12px;border-radius:10px;background:var(--card);border:1px solid rgba(255,255,255,.04)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.student{padding:10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,.01),transparent);border:1px solid rgba(255,255,255,.03)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:60;padding:12px}
+.modal.show{display:flex}
+.sheet{width:94vw;max-width:980px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.small{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px dashed rgba(255,255,255,.03);text-align:left}
+.form-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.input{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--neon);min-width:140px}
 </style>
 </head>
 <body>
-<header><h1>School Admin — Demo</h1><div class="small">Demo-only interface for sample student records. Changes are local and fictional only.</div></header>
+<canvas id="matrix" aria-hidden="true"></canvas>
+<header>
+  <div>
+    <h1 style="margin:0">SCHOOL ADMIN — DEMO</h1>
+    <div class="small">Large student lists, editable marks, printable report (UI-only).</div>
+  </div>
+  <div class="controls">
+    <input id="search" class="search" placeholder="Search student, class or roll..." />
+    <button id="gen" class="btn">Generate 2000 Students</button>
+    <a href="dashboard.html" class="btn" style="background:transparent;border:1px solid rgba(255,255,255,.04);color:var(--neon)">← Dashboard</a>
+  </div>
+</header>
+
 <div class="wrap">
-  <section class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center"><div><strong>Students</strong></div><div><a class="btn" href="dashboard.html">← Dashboard</a></div></div>
-    <div id="students" class="list"></div>
-    <div class="notice">WARNING: All edits here are purely local demo edits. No real school systems or data are accessed.</div>
-  </section>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Students</strong><div class="small">Editable, many examples generated at runtime (all fictional)</div></div>
+      <div class="small" id="counts">0 students</div>
+    </div>
+
+    <div class="grid" id="studentsGrid" style="margin-top:12px"></div>
+  </div>
 </div>
 
+<div id="modal" class="modal" aria-hidden="true"></div>
+
 <script>
-/* Simple in-memory student list for demo */
-const students = [
-  {id:'s1',name:'Jane Mwangi',class:'Form 3',roll:12,subjects:{Math:68,Eng:74,Bio:82}},
-  {id:'s2',name:'Peter Otieno',class:'Form 4',roll:3,subjects:{Math:58,Eng:64,Phy:72}},
-  {id:'s3',name:'Aisha Noor',class:'Form 2',roll:21,subjects:{Math:88,Eng:91,Chem:85}}
-];
-
-function render(){
-  const el = document.getElementById('students'); el.innerHTML = '';
-  students.forEach(s=>{
-    const node = document.createElement('div'); node.className='student';
-    node.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${s.name}</strong><div class="small">${s.class} · Roll ${s.roll}</div></div><div><button class="btn" data-id="${s.id}">Edit</button></div></div>
-      <div style="margin-top:8px" class="small">Subjects: ${Object.entries(s.subjects).map(([k,v])=>`${k}: ${v}`).join(' · ')}</div>`;
-    el.appendChild(node);
-  });
-  el.querySelectorAll('.btn').forEach(b=>b.addEventListener('click', ()=>editStudent(b.dataset.id)));
-}
-render();
-
-function editStudent(id){
-  const s = students.find(x=>x.id===id);
-  const name = prompt('Student name', s.name);
-  if(name === null) return;
-  s.name = name;
-  // update one subject score for demo
-  const subj = prompt('Subject to change (Math/Eng/Bio/Chem/Phy)', Object.keys(s.subjects)[0]);
-  if(subj && s.subjects[subj] !== undefined){
-    const score = parseInt(prompt('New score for ' + subj, s.subjects[subj]));
-    if(!isNaN(score)) s.subjects[subj] = Math.max(0, Math.min(100, score));
+/* School demo: generates many students, searchable, edit form for marks with history,
+   matrix rain background. All simulated and local-only.
+*/
+const matrix = document.getElementById('matrix'), ctx = matrix.getContext('2d');
+let W,H,cols,drops;
+function resize(){ W=matrix.width=innerWidth; H=matrix.height=innerHeight; cols=Math.ceil(W/14); drops=Array(cols).fill(0); }
+addEventListener('resize', resize); resize();
+const glyphs = 'ABCDEFG1234567890@#$%';
+(function anim(){
+  ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#00ff99'; ctx.font='14px monospace';
+  for(let i=0;i<cols;i++){
+    const ch = glyphs[Math.floor(Math.random()*glyphs.length)];
+    ctx.fillText(ch, i*14, drops[i]*14);
+    if(drops[i]*14>H && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
   }
-  alert('Student record updated locally (demo-only).');
-  render();
+  requestAnimationFrame(anim);
+})();
+
+function uid(pref='id'){ return pref+'-'+Math.random().toString(36).slice(2,9); }
+const firsts = ['Aisha','Peter','Jane','John','Sam','Maya','Lina','Omar','David','Grace','Ken','Zuri','Paul'];
+const classes = ['Form 1','Form 2','Form 3','Form 4'];
+
+function genStudents(n=500){
+  const out=[];
+  for(let i=0;i<n;i++){
+    const name = pick(firsts) + ' ' + pick(['Mwangi','Otieno','Njeri','Kamau','Okoth','Kimani','Aden']);
+    const cls = classes[Math.floor(Math.random()*classes.length)];
+    const roll = Math.floor(Math.random()*200)+1;
+    const marks = {Math:rand(30,100), Eng:rand(30,100), Sci:rand(30,100), Hist:rand(30,100)};
+    out.push({id:uid('stu'), name, cls, roll, marks, history:[{date:new Date().toISOString().slice(0,10), change:'Initial import'}]});
+  }
+  return out;
+}
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function rand(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+let students = JSON.parse(localStorage.getItem('demo_students')||'null');
+if(!students){ students = genStudents(600); localStorage.setItem('demo_students', JSON.stringify(students)); }
+document.getElementById('counts').textContent = students.length + ' students';
+
+const gridEl = document.getElementById('studentsGrid');
+function renderList(q=''){
+  gridEl.innerHTML=''; const list = (students||[]).filter(s=>!q || s.name.toLowerCase().includes(q.toLowerCase()) || s.cls.toLowerCase().includes(q.toLowerCase()) || (s.roll+''===q));
+  list.slice(0,1000).forEach(s=>{
+    const card = document.createElement('div'); card.className='student';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:800">${escapeHtml(s.name)}</div><div class="small">${s.cls} · roll ${s.roll}</div></div><div><button class="btn view" data-id="${s.id}">Edit</button></div></div>
+      <div class="small" style="margin-top:8px">Marks: ${Object.entries(s.marks).map(m=>m[0]+': '+m[1]).join(' · ')}</div>`;
+    gridEl.appendChild(card);
+  });
+}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+renderList();
+
+document.getElementById('search').addEventListener('input', (e)=> renderList(e.target.value));
+
+document.getElementById('gen').addEventListener('click', ()=>{
+  students = students.concat(genStudents(2000));
+  localStorage.setItem('demo_students', JSON.stringify(students));
+  document.getElementById('counts').textContent = students.length + ' students';
+  renderList();
+  alert('Generated 2,000 additional students (demo). Stored locally.');
+});
+
+gridEl.addEventListener('click', (e)=>{
+  if(e.target.matches('.view')){
+    const id = e.target.dataset.id; openStudent(id);
+  }
+});
+
+function openStudent(id){
+  const s = students.find(x=>x.id===id); if(!s) return;
+  const modal = document.getElementById('modal'); modal.innerHTML = '';
+  const sh = document.createElement('div'); sh.className='sheet';
+  sh.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center"><div><strong>${escapeHtml(s.name)}</strong><div class="small">${s.cls} · roll ${s.roll}</div></div><div><button id="close" class="ghost">Close</button></div></header>
+    <div style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="flex:1;min-width:320px">
+        <div style="font-weight:800">Marks</div>
+        <div style="margin-top:8px">
+          <div class="form-row">
+            <label class="small">Math <input id="mMath" class="input" value="${s.marks.Math || ''}"></label>
+            <label class="small">Eng <input id="mEng" class="input" value="${s.marks.Eng || ''}"></label>
+            <label class="small">Sci <input id="mSci" class="input" value="${s.marks.Sci || ''}"></label>
+            <label class="small">Hist <input id="mHist" class="input" value="${s.marks.Hist || ''}"></label>
+          </div>
+          <div style="margin-top:10px"><button id="save" class="btn">Save Changes</button> <button id="print" class="ghost">Printable Report</button></div>
+          <div class="small" style="margin-top:8px">Change history</div>
+          <div id="hist" style="margin-top:6px" class="small">${s.history.map(h=>`${h.date} — ${h.change}`).join('<br>')}</div>
+        </div>
+      </div>
+      <div style="width:320px">
+        <div style="font-weight:800">Simulated Tools</div>
+        <div class="small" style="margin-top:8px">Change score -> local dataset only.</div>
+        <div style="margin-top:10px"><button id="autoFill" class="ghost">Auto-fill Mock Exam (sim)</button></div>
+      </div>
+    </div>`;
+  modal.appendChild(sh); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+
+  sh.querySelector('#close').addEventListener('click', ()=>{ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); setTimeout(()=>modal.innerHTML='',250); });
+
+  sh.querySelector('#save').addEventListener('click', ()=>{
+    const newMarks = { Math: +sh.querySelector('#mMath').value||0, Eng:+sh.querySelector('#mEng').value||0, Sci:+sh.querySelector('#mSci').value||0, Hist:+sh.querySelector('#mHist').value||0 };
+    s.marks = newMarks; s.history.unshift({date:new Date().toISOString().slice(0,10), change:'Marks updated via UI'});
+    localStorage.setItem('demo_students', JSON.stringify(students));
+    document.getElementById('counts').textContent = students.length + ' students';
+    renderList();
+    sh.querySelector('#hist').innerHTML = s.history.map(h=>`${h.date} — ${h.change}`).join('<br>');
+    alert('Student record updated locally (demo-only).');
+  });
+
+  sh.querySelector('#autoFill').addEventListener('click', ()=>{
+    s.marks = { Math: rand(60,95), Eng:rand(55,95), Sci:rand(50,95), Hist:rand(50,95) };
+    s.history.unshift({date:new Date().toISOString().slice(0,10), change:'Auto-fill mock exam'});
+    localStorage.setItem('demo_students', JSON.stringify(students));
+    sh.querySelector('#mMath').value = s.marks.Math; sh.querySelector('#mEng').value = s.marks.Eng; sh.querySelector('#mSci').value = s.marks.Sci; sh.querySelector('#mHist').value = s.marks.Hist;
+    sh.querySelector('#hist').innerHTML = s.history.map(h=>`${h.date} — ${h.change}`).join('<br>');
+    alert('Auto-filled marks (demo).');
+  });
+
+  sh.querySelector('#print').addEventListener('click', ()=>{ window.print(); });
 }
 </script>
 </body>
