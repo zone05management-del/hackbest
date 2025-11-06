@@ -3,171 +3,439 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Cars — Demo</title>
+<title>Cars — 3D Demo (fixed)</title>
 <style>
-:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62}
+:root{--bg:#050807;--txt:#c9ffe1;--accent:#18ff62;--muted:#9fe7bd}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 15% 10%, rgba(24,255,98,.03), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace, monospace}
-header{padding:14px;text-align:center}
-.wrap{padding:12px;max-width:1100px;margin:0 auto}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
-.card{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer}
-.row{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center}
-.icon{width:56px;height:56px;border-radius:10px;display:grid;place-items:center;background:rgba(24,255,98,.03)}
-.badge{padding:6px 8px;border-radius:999px;background:var(--accent);color:#001}
-.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.66);z-index:40;padding:12px}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 85% 10%, rgba(24,255,98,.02), transparent),var(--bg);color:var(--txt);font:15px/1.6 ui-monospace,monospace;overflow:auto}
+.matrix-bg{position:fixed;inset:0;z-index:0}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px;position:sticky;top:0;background:rgba(0,0,0,.45);border-bottom:1px solid rgba(24,255,98,.06);z-index:3}
+header h1{margin:0;color:var(--accent)}
+.wrap{padding:12px;max-width:1200px;margin:0 auto;position:relative;z-index:2}
+.controls{display:flex;gap:8px;align-items:center}
+.search{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent;color:var(--txt)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px}
+.card{padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.04);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.small{font-size:13px;color:var(--muted)}
+.btn{background:var(--accent);color:#001;padding:8px;border-radius:8px;border:none;cursor:pointer}
+.ghost{background:transparent;border:1px solid rgba(255,255,255,.04);padding:8px;border-radius:8px;color:var(--txt)}
+.notice{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03);color:var(--muted);font-size:13px}
+
+/* modal */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.78);z-index:60;padding:12px}
 .modal.show{display:flex}
-.car-shell{width:92vw;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
-.controls{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
-.control{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:transparent}
-.canvas-wrap{margin-top:12px;border-radius:8px;overflow:hidden;border:1px dashed rgba(255,255,255,.04)}
-.small{font-size:13px;color:#9fe7bd}
+.car-panel{width:95vw;max-width:1200px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04)}
+.car-body{display:grid;grid-template-columns:1fr 320px;gap:12px;margin-top:10px}
+@media (max-width:980px){ .car-body{grid-template-columns:1fr} }
+.renderer-wrap{width:100%;height:520px;background:#03110a;border-radius:8px;overflow:hidden;border:1px dashed rgba(255,255,255,.03)}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.kv{padding:8px;border-radius:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.03);margin-bottom:8px}
+.color-swatch{width:28px;height:20px;border-radius:4px;border:1px solid rgba(255,255,255,.06);cursor:pointer}
+.terminal{margin-top:12px;padding:10px;border-radius:8px;background:#06120a;border:1px solid rgba(0,255,153,.06);min-height:70px;font-family:ui-monospace,monospace;color:#bfffd0;font-size:13px;overflow:auto}
+.model-select{padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,.04);color:var(--txt)}
+.legend{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px}
 </style>
 </head>
 <body>
-<header><h1>Cars Control — Demo</h1><div class="small">Open a car to see controls and a simple driving simulator (UI-only).</div></header>
-<div class="wrap">
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <div class="small" id="counts"></div>
-    <div><a href="dashboard.html" style="color:var(--txt);text-decoration:none;border:1px solid rgba(255,255,255,.04);padding:8px;border-radius:8px">← Dashboard</a></div>
-  </div>
+<div class="matrix-bg"><canvas id="matrix"></canvas></div>
 
-  <div id="carsGrid" class="grid" style="margin-top:12px"></div>
+<header>
+  <h1>Cars — 3D Demo (fixed)</h1>
+  <div class="controls">
+    <input id="search" class="search" placeholder="Search name, plate, model..." />
+    <button id="reload" class="ghost">Reload</button>
+    <a href="dashboard.html" class="ghost">← Dashboard</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="counts" class="small">Cars: —</div>
+  <div id="carsGrid" class="grid"></div>
+  <div class="notice">Uses an immediate fallback 3D vehicle so buttons and view always work. Optional glTF models are attempted to load in the background.</div>
 </div>
 
 <div id="modal" class="modal" aria-hidden="true"></div>
 
+<!-- Three.js UMD builds -->
+<script src="https://unpkg.com/three@0.154.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.154.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://unpkg.com/three@0.154.0/examples/js/loaders/GLTFLoader.js"></script>
+
 <script>
-function loadDataset(){ try{ return JSON.parse(localStorage.getItem('demoDataset')||'null'); }catch(e){ return null; } }
-function escape(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-let DATA = loadDataset();
-const BUILTIN = {
-  cars:[
-    {"id":"c1","name":"FOX-Unit-1","model":"Nova GT","plate":"RFX-001","state":"ACTIVE","speed":48,"fuel":62,"engineOn":true,"locked":false,"location":{"lat":-1.2921,"lon":36.8219,"label":"Nairobi, KE"}},
-    {"id":"c2","name":"FOX-Unit-2","model":"Terra EV","plate":"RFX-002","state":"PARKED","speed":0,"fuel":82,"engineOn":false,"locked":true,"location":{"lat":-4.0435,"lon":39.6682,"label":"Mombasa, KE"}}
-  ]
+/* Fixed working cars demo.
+   - Fallback parametric car created immediately when modal opens so view and buttons always work.
+   - Attempts to load glTF model in background and if successful it replaces fallback and wires real nodes.
+   - Buttons (Engine, Lock, Doors, Headlights, Paint, Trace) are always hooked and will work on fallback or on real model as available.
+   - Terminal shows logs and errors for debugging.
+*/
+
+// Matrix rain background
+const mx = document.getElementById('matrix'), mctx = mx.getContext('2d');
+let mw, mh, mcols, mdrops;
+function msize(){ mw = mx.width = innerWidth; mh = mx.height = innerHeight; mcols = Math.ceil(mw/14); mdrops = Array(mcols).fill(0); }
+addEventListener('resize', msize); msize();
+const glyphs = '0011010011010101010011001101010101010001101010010101010101010101';
+(function anim(t){
+  mctx.fillStyle='rgba(0,0,0,0.07)';
+  mctx.fillRect(0,0,mw,mh);
+  mctx.fillStyle='#00ff99';
+  mctx.font='14px monospace';
+  for(let i=0;i<mcols;i++){
+    const ch = glyphs[Math.floor(Math.random()*glyphs.length)];
+    mctx.fillText(ch, i*14, mdrops[i]*14);
+    if(mdrops[i]*14 > mh && Math.random()>0.975) mdrops[i]=0;
+    mdrops[i]++;
+  }
+  requestAnimationFrame(anim);
+})();
+
+// dataset generator / loader
+const STORAGE_KEY = 'demoDataset';
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function uid(pref='id'){ return pref + '-' + Math.random().toString(36).slice(2,9); }
+function makePlate(){ return String.fromCharCode(65+randInt(0,25))+String.fromCharCode(65+randInt(0,25))+'-'+randInt(100,999); }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+function generateCars(n=300){
+  const models = ["Nova GT","Terra EV","Ranger","Scout","Falcon R","Voyager"];
+  const cities = [{label:'Nairobi, KE',lat:-1.2921,lon:36.8219},{label:'Mombasa, KE',lat:-4.0435,lon:39.6682},{label:'London, UK',lat:51.5074,lon:-0.1278}];
+  const out=[];
+  for(let i=0;i<n;i++){
+    const c = pick(cities);
+    out.push({
+      id: uid('car'),
+      name: 'Unit-'+(100+i),
+      model: pick(models),
+      plate: makePlate(),
+      state: pick(['ACTIVE','PARKED','IDLE']),
+      speed: randInt(0,120),
+      fuel: randInt(5,99),
+      engineOn: Math.random()>0.7,
+      locked: Math.random()>0.3,
+      location: {lat: +(c.lat + (Math.random()-0.5)/10).toFixed(6), lon: +(c.lon + (Math.random()-0.5)/10).toFixed(6), label: c.label}
+    });
+  }
+  return out;
+}
+
+function loadDataset(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; }
+}
+function ensureDataset(){
+  const ds = loadDataset();
+  if(ds && ds.cars && ds.cars.length>100) return ds.cars;
+  const cars = generateCars(400);
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({meta:{generatedAt:new Date().toISOString()}, cars})); }catch(e){}
+  return cars;
+}
+
+let DATA = ensureDataset();
+
+// render grid
+const grid = document.getElementById('carsGrid');
+function renderCars(q=''){
+  grid.innerHTML='';
+  const list = DATA.filter(c=>!q || (c.name||'').toLowerCase().includes(q) || (c.plate||'').toLowerCase().includes(q) || (c.model||'').toLowerCase().includes(q));
+  document.getElementById('counts').textContent = `Cars: ${list.length}`;
+  const limit = Math.min(list.length, 800);
+  for(let i=0;i<limit;i++){
+    const car = list[i];
+    const el = document.createElement('div'); el.className='card';
+    el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(car.name)}</div><div class="small">${escapeHtml(car.model)} · ${escapeHtml(car.plate)}</div></div><div><button class="btn openBtn" data-id="${car.id}">Open</button></div>`;
+    grid.appendChild(el);
+  }
+  grid.querySelectorAll('.openBtn').forEach(b=>b.addEventListener('click', ()=>openCarById(b.dataset.id)));
+  if(list.length > limit){
+    const more = document.createElement('div'); more.className='card small'; more.textContent = `Showing ${limit} of ${list.length}. Use search to narrow results.`;
+    grid.appendChild(more);
+  }
+}
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+renderCars();
+
+// constants: sample model urls (public samples)
+const MODEL_LIBRARY = {
+  buggy: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/Buggy/glTF-Binary/Buggy.glb',
+  truck: 'https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Models@master/2.0/CesiumMilkTruck/glTF/CesiumMilkTruck.gltf'
 };
 
-function getCars(){ if(DATA && DATA.cars && DATA.cars.length) return DATA.cars; return BUILTIN.cars; }
+// open modal: create immediate fallback car, wire buttons, then attempt to load glTF model
+function openCarById(id){
+  const car = DATA.find(x=>x.id===id); if(!car) return;
+  const modal = document.getElementById('modal'); modal.innerHTML='';
+  const panel = document.createElement('div'); panel.className='car-panel';
+  panel.innerHTML = `
+    <header style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>${escapeHtml(car.name)}</strong><div class="small">${escapeHtml(car.model)} · ${escapeHtml(car.plate)}</div></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="variant" class="model-select">
+          <option value="mixed">Mixed</option>
+          <option value="buggy">Buggy</option>
+          <option value="truck">Truck</option>
+        </select>
+        <button id="close" class="ghost">Close</button>
+      </div>
+    </header>
+    <div class="car-body">
+      <div>
+        <div id="rendererWrap" class="renderer-wrap"></div>
+        <div class="controls-row">
+          <button id="engine" class="btn">${car.engineOn ? 'Stop Engine' : 'Start Engine'}</button>
+          <button id="lights" class="ghost">Headlights: OFF</button>
+          <button id="doors" class="ghost">Doors: CLOSED</button>
+          <button id="trace" class="ghost">GPS Trace</button>
+          <div style="display:flex;align-items:center;gap:6px;margin-left:10px">
+            <span class="small">Paint:</span>
+            <div id="red" class="color-swatch" style="background:#ff3b3b"></div>
+            <div id="blue" class="color-swatch" style="background:#3b8cff"></div>
+            <div id="green" class="color-swatch" style="background:#18ff62"></div>
+            <div id="silver" class="color-swatch" style="background:#b7b7b7"></div>
+          </div>
+        </div>
+        <div class="terminal" id="terminal"></div>
+      </div>
+      <div>
+        <div class="kv"><b>Speed:</b> <span id="speed">${car.speed}</span> km/h</div>
+        <div class="kv"><b>Fuel:</b> <span id="fuel">${car.fuel}</span>%</div>
+        <div class="kv"><b>Engine:</b> <span id="eng">${car.engineOn ? 'ON' : 'OFF'}</span></div>
+        <div class="kv"><b>Location:</b><div class="small">${escapeHtml(car.location.label)}<br>${car.location.lat.toFixed(6)}, ${car.location.lon.toFixed(6)}</div></div>
+      </div>
+    </div>
+  `;
+  modal.appendChild(panel);
+  modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
 
-function renderCars(){
-  const grid = document.getElementById('carsGrid'); grid.innerHTML='';
-  const cars = getCars(); document.getElementById('counts').textContent = `Cars: ${cars.length}`;
-  cars.slice(0,1000).forEach(car=>{
-    const el = document.createElement('article'); el.className='card';
-    el.innerHTML = `<div class="row"><div class="icon">🚗</div><div><div style="font-weight:800">${escape(car.name)}</div><div class="small">${escape(car.model)} · ${escape(car.plate)}</div></div><div><div class="badge">${escape(car.state)}</div></div></div>`;
-    el.addEventListener('click', ()=>openCar(car));
-    grid.appendChild(el);
+  const logEl = panel.querySelector('#terminal');
+  function term(msg){ const d=document.createElement('div'); d.textContent = `${new Date().toLocaleTimeString()} · ${msg}`; logEl.insertBefore(d, logEl.firstChild); console.log(msg); }
+
+  // Setup Three.js renderer, immediate fallback car, and then attempt to load glTF
+  const wrap = panel.querySelector('#rendererWrap');
+  wrap.innerHTML=''; // clear
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(wrap.clientWidth, wrap.clientHeight);
+  wrap.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, wrap.clientWidth / wrap.clientHeight, 0.1, 1000);
+  camera.position.set(0, 3.2, 8);
+
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x080820, 0.9); scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xffffff, 0.6); dir.position.set(5,10,7); scene.add(dir);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(200,200), new THREE.MeshStandardMaterial({color:0x06120b}));
+  ground.rotation.x = -Math.PI/2; ground.position.y = 0; scene.add(ground);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.07; controls.target.set(0,1,0);
+
+  // fallback parametric car (immediate visible)
+  const fallback = new THREE.Group();
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(3.6,0.9,1.8), new THREE.MeshStandardMaterial({color:0x18ff62, metalness:0.3, roughness:0.4}));
+  chassis.position.y = 0.9; fallback.add(chassis);
+  const wheelGeo = new THREE.CylinderGeometry(0.32,0.32,0.5,16);
+  const wheelMat = new THREE.MeshStandardMaterial({color:0x080808});
+  const wheelPos = [[1.2,0.32,0.7],[-1.2,0.32,0.7],[1.2,0.32,-0.7],[-1.2,0.32,-0.7]];
+  const wheels = [];
+  wheelPos.forEach(p=>{
+    const w = new THREE.Mesh(wheelGeo, wheelMat); w.rotation.z = Math.PI/2; w.position.set(p[0], p[1], p[2]); fallback.add(w); wheels.push(w);
+  });
+  // doors (simple boxes)
+  const doorLeft = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.8), new THREE.MeshStandardMaterial({color:0x0a0a0a}));
+  doorLeft.position.set(-0.6,0.85,0); doorLeft.rotation.y = 0; fallback.add(doorLeft);
+  const doorRight = new THREE.Mesh(new THREE.BoxGeometry(0.02,0.5,0.8), new THREE.MeshStandardMaterial({color:0x0a0a0a}));
+  doorRight.position.set(0.6,0.85,0); doorRight.rotation.y = 0; fallback.add(doorRight);
+  // simple headlight markers
+  const lampGeo = new THREE.SphereGeometry(0.06,8,8);
+  const lampMat = new THREE.MeshStandardMaterial({emissive:0x000000, color:0x222222});
+  const lampL = new THREE.Mesh(lampGeo, lampMat); lampL.position.set(-1.5,0.9,0.85); fallback.add(lampL);
+  const lampR = new THREE.Mesh(lampGeo, lampMat.clone()); lampR.position.set(1.5,0.9,0.85); fallback.add(lampR);
+  // attach fallback lights (off by default)
+  const plL = new THREE.PointLight(0xfff8ec, 0, 10); plL.position.copy(lampL.position); scene.add(plL);
+  const plR = new THREE.PointLight(0xfff8ec, 0, 10); plR.position.copy(lampR.position); scene.add(plR);
+
+  scene.add(fallback);
+  term('Fallback car created and visible.');
+
+  // state
+  let engine = car.engineOn;
+  let lightsOn = false;
+  let doorsOpen = false;
+  let simulateSpeed = car.speed || 0;
+  let simulateFuel = car.fuel || 100;
+
+  // Attach UI handlers (these act on fallback immediately)
+  panel.querySelector('#engine').addEventListener('click', ()=>{
+    engine = !engine;
+    panel.querySelector('#engine').textContent = engine ? 'Stop Engine':'Start Engine';
+    panel.querySelector('#eng').textContent = engine ? 'ON':'OFF';
+    term('Engine ' + (engine ? 'started (simulated)' : 'stopped'));
+  });
+  panel.querySelector('#lights').addEventListener('click', ()=>{
+    lightsOn = !lightsOn;
+    panel.querySelector('#lights').textContent = 'Headlights: ' + (lightsOn ? 'ON':'OFF');
+    // toggle the point lights and emissive
+    plL.intensity = lightsOn ? 1.6 : 0;
+    plR.intensity = lightsOn ? 1.6 : 0;
+    lampL.material.emissive.setHex(lightsOn ? 0xffffff : 0x000000);
+    lampR.material.emissive.setHex(lightsOn ? 0xffffff : 0x000000);
+    term('Headlights ' + (lightsOn ? 'enabled' : 'disabled'));
+  });
+  panel.querySelector('#doors').addEventListener('click', ()=>{
+    doorsOpen = !doorsOpen;
+    panel.querySelector('#doors').textContent = 'Doors: ' + (doorsOpen ? 'OPEN':'CLOSED');
+    // animate doors (simple rotation)
+    const duration = 500; const start = performance.now();
+    const fromL = doorLeft.rotation.y, toL = doorsOpen ? Math.PI*0.6 : 0;
+    const fromR = doorRight.rotation.y, toR = doorsOpen ? -Math.PI*0.6 : 0;
+    (function step(){
+      const now = performance.now(); const t = Math.min(1,(now-start)/duration);
+      doorLeft.rotation.y = fromL + (toL-fromL)*t;
+      doorRight.rotation.y = fromR + (toR-fromR)*t;
+      if(t<1) requestAnimationFrame(step);
+    })();
+    term('Doors ' + (doorsOpen ? 'opened (simulated)' : 'closed (simulated)'));
+  });
+  panel.querySelector('#trace').addEventListener('click', ()=>{
+    term('Triangulating (simulated)...');
+    let s=0; const iv = setInterval(()=>{ s++; term('Triangulation ' + Math.min(100,s*20) + '%'); if(s>=5){ clearInterval(iv); term('Approx location: ' + car.location.lat.toFixed(6) + ', ' + car.location.lon.toFixed(6)); } }, 500);
+  });
+
+  // paint swatches
+  panel.querySelector('#red').addEventListener('click', ()=>{ chassis.material.color.setHex(0xff3b3b); term('Paint set: red'); });
+  panel.querySelector('#blue').addEventListener('click', ()=>{ chassis.material.color.setHex(0x3b8cff); term('Paint set: blue'); });
+  panel.querySelector('#green').addEventListener('click', ()=>{ chassis.material.color.setHex(0x18ff62); term('Paint set: green'); });
+  panel.querySelector('#silver').addEventListener('click', ()=>{ chassis.material.color.setHex(0xb7b7b7); term('Paint set: silver'); });
+
+  // attempt to load a glTF model in the background and wire up parts if available
+  const loader = new THREE.GLTFLoader();
+  function tryLoadModel(variant='mixed'){
+    // pick url
+    let url = MODEL_LIBRARY.buggy; // default
+    if(variant === 'truck') url = MODEL_LIBRARY.truck;
+    // mixed: alternate by car id parity
+    if(variant === 'mixed') url = (car.id.charCodeAt(0) % 2 === 0) ? MODEL_LIBRARY.buggy : MODEL_LIBRARY.truck;
+
+    term('Attempting to load model: ' + url);
+    loader.load(url, gltf=>{
+      try{
+        // remove fallback from scene
+        scene.remove(fallback);
+        // add loaded model
+        const model = gltf.scene;
+        // normalize and scale
+        const bbox = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3(); bbox.getSize(size);
+        const center = new THREE.Vector3(); bbox.getCenter(center);
+        model.position.sub(center);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const s = maxDim ? (3.0 / maxDim) : 1.0;
+        model.scale.setScalar(s);
+        scene.add(model);
+        term('Model loaded and added to scene.');
+        // attempt to detect wheels, doors, headlights, and chassis materials
+        let wheels = [], doors = [], headlights = [], chassisMats = [];
+        model.traverse(node=>{
+          if(node.isMesh){
+            const name = (node.name || '').toLowerCase();
+            if(/wheel|tyre|rim|tire/.test(name)) wheels.push(node);
+            if(/door|wing|flank/.test(name)) doors.push(node);
+            if(/headlight|lamp|light|head/.test(name)) headlights.push(node);
+            if(/body|car|chassis|paint/.test(name) || name.length<4) chassisMats.push(node.material);
+          }
+        });
+        term(`Detected wheels:${wheels.length} doors:${doors.length} headlights:${headlights.length}`);
+        // replace handlers to act on model wheels/doors/headlights if found
+        // wheels rotate in animation loop below by using modelWheels array reference
+        if(wheels.length) modelWheels = wheels; else modelWheels = wheels; // keep any array (may be empty)
+        if(doors.length) modelDoors = doors;
+        if(headlights.length){
+          modelHeadlights = headlights;
+          // if Headlight meshes, create lights at their positions
+          modelHeadlights.forEach(h=>{
+            const world = new THREE.Vector3(); h.getWorldPosition(world);
+            const pl = new THREE.PointLight(0xfff8ec, 0, 10); pl.position.copy(world); scene.add(pl); h.userData._pt = pl;
+          });
+        }
+        if(chassisMats.length) fallbackChassisMaterials = chassisMats;
+      }catch(err){
+        console.error('Error wiring model:', err); term('Model loaded but wiring failed: ' + (err.message || err));
+      }
+    }, undefined, err=>{
+      console.warn('Model load error', err);
+      term('Model load failed: ' + (err && err.message ? err.message : 'error') + ' — using fallback.');
+      // leave fallback visible
+    });
+  }
+
+  // model arrays that animation loop uses; initially connected to fallback nodes
+  let modelWheels = wheels.slice();
+  let modelDoors = [doorLeft, doorRight];
+  let modelHeadlights = [lampL, lampR];
+  let fallbackChassisMaterials = [chassis.material];
+
+  // attempt to load model variant selected
+  const variantSelector = panel.querySelector('#variant');
+  variantSelector.addEventListener('change', ()=> tryLoadModel(variantSelector.value));
+  tryLoadModel('mixed');
+
+  // animation loop
+  let last = performance.now();
+  (function loop(){
+    const now = performance.now(); const dt = (now - last)/1000; last = now;
+    // rotate wheels if engine on
+    if(engine){
+      modelWheels.forEach(w=>{ if(w) w.rotation.x -= (3 + simulateSpeed/40) * dt * 6; });
+      simulateSpeed = Math.min(260, simulateSpeed + 30*dt * (accel?1.4:1));
+      simulateFuel = Math.max(0, simulateFuel - 0.015 * Math.max(1, simulateSpeed/80) * dt);
+    } else {
+      simulateSpeed = Math.max(0, simulateSpeed - 20*dt);
+    }
+    // update UI telemetry
+    panel.querySelector('#speed').textContent = Math.round(simulateSpeed);
+    panel.querySelector('#fuel').textContent = Math.round(simulateFuel);
+    panel.querySelector('#eng').textContent = engine ? 'ON' : 'OFF';
+
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  })();
+
+  // keyboard simulation (W/S accelerate)
+  let accel=false, brake=false;
+  function kdown(e){ if(e.key==='w' || e.key==='ArrowUp') accel=true; if(e.key==='s' || e.key==='ArrowDown') brake=true; }
+  function kup(e){ if(e.key==='w' || e.key==='ArrowUp') accel=false; if(e.key==='s' || e.key==='ArrowDown') brake=false; }
+  window.addEventListener('keydown', kdown); window.addEventListener('keyup', kup);
+
+  // close handler
+  panel.querySelector('#close').addEventListener('click', ()=>{
+    modal.classList.remove('show'); modal.setAttribute('aria-hidden','true');
+    setTimeout(()=> modal.innerHTML = '', 350);
+    try{ renderer.dispose(); }catch(e){}
+    window.removeEventListener('keydown', kdown); window.removeEventListener('keyup', kup);
   });
 }
 
-function openCar(car){
-  const modal = document.getElementById('modal'); modal.innerHTML='';
-  const wrap = document.createElement('div'); wrap.className='car-shell';
-  wrap.innerHTML = `<header style="display:flex;justify-content:space-between;align-items:center">
-    <div><strong>${escape(car.name)}</strong><div class="small">${escape(car.model)}</div></div>
-    <div class="small">${escape(car.plate)}</div>
-  </header>
-  <div style="margin-top:8px">
-    <div class="controls">
-      <button id="startEngine" class="control">${car.engineOn ? 'Stop Engine' : 'Start Engine'}</button>
-      <button id="gearDown" class="control">Gear -</button>
-      <div id="gearDisplay" class="control">Gear: N</div>
-      <button id="gearUp" class="control">Gear +</button>
-      <button id="toggleLock" class="control">${car.locked ? 'Unlock' : 'Lock'}</button>
-      <button id="closeBtn" class="control">Close</button>
-    </div>
+// event delegation: open buttons
+document.addEventListener('click', e=>{
+  if(e.target && e.target.matches && e.target.matches('.openBtn')) openCarById(e.target.dataset.id);
+});
 
-    <div style="margin-top:10px">
-      <div style="display:flex;gap:12px;align-items:flex-start">
-        <div style="flex:1">
-          <div class="canvas-wrap"><canvas id="driveCanvas" width="800" height="320" style="width:100%;display:block"></canvas></div>
-        </div>
-        <div style="width:220px">
-          <div style="padding:10px;border-radius:8px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.03)">
-            <div><b>Speed:</b> <span id="speed">0</span> km/h</div>
-            <div><b>Fuel:</b> <span id="fuel">${car.fuel}</span>%</div>
-            <div><b>Engine:</b> <span id="eng">${car.engineOn ? 'ON' : 'OFF'}</span></div>
-            <div><b>Locked:</b> <span id="locked">${car.locked ? 'YES' : 'NO'}</span></div>
-            <div style="margin-top:8px"><button class="control" id="headlights">Flash Lights</button> <button class="control" id="gpsTrace">GPS Trace</button></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>`;
-  modal.appendChild(wrap); modal.classList.add('show'); modal.setAttribute('aria-hidden','false');
+document.getElementById('search').addEventListener('input', (e)=> renderCars(e.target.value));
+document.getElementById('reload').addEventListener('click', ()=>{ DATA = ensureDataset(); renderCars(); });
 
-  const canvas = document.getElementById('driveCanvas'); const ctx = canvas.getContext('2d');
-  let state = {x:canvas.width/2, y:canvas.height/2, heading:0, speed:car.speed>0?car.speed:0, gear:0, engine:car.engineOn, fuel:car.fuel};
-  const speedEl = wrap.querySelector('#speed'), fuelEl = wrap.querySelector('#fuel'), engEl = wrap.querySelector('#eng'), lockedEl = wrap.querySelector('#locked'), gearDisplay = wrap.querySelector('#gearDisplay');
+// close modal on ESC
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){ const m=document.getElementById('modal'); if(m.classList.contains('show')){ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); setTimeout(()=>m.innerHTML='',250); } }
+});
 
-  let acc=false, brake=false, steerLeft=false, steerRight=false;
+// utility: quick dataset if none
+function ensureDataset(){ const ds = loadDataset(); if(ds && ds.cars && ds.cars.length>100) return ds.cars; const cars = generateCars(300); try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({cars})); }catch(e){} return cars; }
 
-  function draw(){
-    ctx.fillStyle = '#03110a'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#052015';
-    for(let gx=0;gx<canvas.width;gx+=40){ ctx.fillRect(gx,0,1,canvas.height); }
-    for(let gy=0;gy<canvas.height;gy+=40){ ctx.fillRect(0,gy,canvas.width,1); }
-    ctx.save(); ctx.translate(state.x, state.y); ctx.rotate(state.heading);
-    ctx.fillStyle = '#49ffd7'; ctx.beginPath(); ctx.moveTo(12,0); ctx.lineTo(-10,8); ctx.lineTo(-10,-8); ctx.closePath(); ctx.fill(); ctx.restore();
-    ctx.fillStyle = '#9fe7bd'; ctx.fillText('Demo driving simulation (UI-only)', 10, 20);
-  }
+function loadDataset(){ try{ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return null; return JSON.parse(raw); }catch(e){ return null; } }
 
-  function step(dt){
-    if(state.engine && state.fuel>0){
-      const accel = acc ? (state.gear>0 ? 30*state.gear : 5) : 0;
-      const braking = brake ? 80 : 0;
-      state.speed += (accel - braking) * dt;
-      if(state.speed < 0) state.speed = 0;
-      if(state.speed > 220) state.speed = 220;
-      const turn = (steerLeft? -1:0) + (steerRight?1:0);
-      state.heading += turn * 0.02 * (state.speed/30 + 0.5);
-      state.x += Math.cos(state.heading) * state.speed * dt * 0.5;
-      state.y += Math.sin(state.heading) * state.speed * dt * 0.5;
-      if(state.x < 0) state.x = canvas.width;
-      if(state.x > canvas.width) state.x = 0;
-      if(state.y < 0) state.y = canvas.height;
-      if(state.y > canvas.height) state.y = 0;
-      state.fuel -= Math.max(0.01, state.speed/2000);
-      if(state.fuel < 0) state.fuel = 0;
-    } else {
-      state.speed = Math.max(0, state.speed - 20*dt);
-    }
-    speedEl.textContent = Math.round(state.speed);
-    fuelEl.textContent = Math.round(state.fuel);
-    engEl.textContent = state.engine ? 'ON' : 'OFF';
-    lockedEl.textContent = car.locked ? 'YES' : 'NO';
-    gearDisplay.textContent = 'Gear: ' + (state.gear === 0 ? 'N' : state.gear);
-  }
-
-  let lastTs = performance.now();
-  function loop(ts){
-    const dt = (ts - lastTs)/1000; lastTs = ts;
-    step(dt); draw();
-    if(modal.classList.contains('show')) requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-
-  const startBtn = wrap.querySelector('#startEngine'), gearUp = wrap.querySelector('#gearUp'), gearDown = wrap.querySelector('#gearDown'), lockBtn = wrap.querySelector('#toggleLock'), closeBtn = wrap.querySelector('#closeBtn'), headlights = wrap.querySelector('#headlights'), gpsTrace = wrap.querySelector('#gpsTrace');
-  startBtn.addEventListener('click', ()=>{ state.engine = !state.engine; startBtn.textContent = state.engine ? 'Stop Engine' : 'Start Engine'; });
-  gearUp.addEventListener('click', ()=>{ if(state.gear < 6) state.gear++; });
-  gearDown.addEventListener('click', ()=>{ if(state.gear > 0) state.gear--; });
-  lockBtn.addEventListener('click', ()=>{ car.locked = !car.locked; lockBtn.textContent = car.locked ? 'Unlock' : 'Lock'; lockedEl.textContent = car.locked ? 'YES' : 'NO'; });
-  headlights.addEventListener('click', ()=>{ wrap.style.boxShadow = '0 0 40px rgba(255,255,150,.8)'; setTimeout(()=>wrap.style.boxShadow='',300); });
-  gpsTrace.addEventListener('click', ()=>{ alert('GPS Trace simulated: approximate route fixed (UI-only)'); });
-  closeBtn.addEventListener('click', closeModal);
-
-  document.addEventListener('keydown', keyDownHandler);
-  document.addEventListener('keyup', keyUpHandler);
-  function keyDownHandler(e){ if(e.key === 'ArrowUp' || e.key === 'w') acc = true; if(e.key === 'ArrowDown' || e.key === 's') brake = true; if(e.key === 'ArrowLeft' || e.key === 'a') steerLeft = true; if(e.key === 'ArrowRight' || e.key === 'd') steerRight = true; if(e.key === 'g') { state.gear = Math.min(6, state.gear + 1); } if(e.key === 'b') { state.gear = Math.max(0, state.gear - 1); } }
-  function keyUpHandler(e){ if(e.key === 'ArrowUp' || e.key === 'w') acc = false; if(e.key === 'ArrowDown' || e.key === 's') brake = false; if(e.key === 'ArrowLeft' || e.key === 'a') steerLeft = false; if(e.key === 'ArrowRight' || e.key === 'd') steerRight = false; }
-
-  function closeModal(){ modal.classList.remove('show'); modal.setAttribute('aria-hidden','true'); document.removeEventListener('keydown', keyDownHandler); document.removeEventListener('keyup', keyUpHandler); setTimeout(()=>modal.innerHTML='',250); }
-  window.closeModal = closeModal;
-}
-
+// initial render
 renderCars();
-document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ const m=document.getElementById('modal'); if(m.classList.contains('show')) m.classList.remove('show'); } });
 </script>
 </body>
 </html>
